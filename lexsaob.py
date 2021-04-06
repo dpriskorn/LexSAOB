@@ -24,7 +24,7 @@ login_instance = wbi_login.Login(
 print("Fetching all lexemes")
 lexemes_data = {}
 lexemes_list = []
-for i in range(0,10000,10000):
+for i in range(0,30000,10000):
     print(i)
     results = wbi_core.ItemEngine.execute_sparql_query(f"""
             select ?lexemeId ?lemma ?category
@@ -163,6 +163,8 @@ for lexeme in lexemes_list:
                             #append_value="P8478",
                             item_id=lid
                         )
+                        # debug WBI error
+                        print(item.get_json_representation())
                         result = item.write(
                             login_instance,
                             edit_summary="Added SAOB identifier with [[Wikidata:Tools/LexSAOB]]"
@@ -170,7 +172,7 @@ for lexeme in lexemes_list:
                         #if config.debug_json:
                         #logging.debug(f"result from WBI:{result}")
                         print(f"{wd_prefix}{lid}")
-                        exit(0)
+                        # exit(0)
                     else:
                         print("Categories did not match :/ - skipping")
     else:
