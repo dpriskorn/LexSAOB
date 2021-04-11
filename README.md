@@ -1,5 +1,5 @@
 # LexSAOB
-Add SAOB identifier to Wikidata Lexemes. This script is maybe not that useful to run for anyone else besides the author in its current form. It is shared here to help others get started writing scripts to improve Wikidata.
+Add SAOB identifier to Wikidata Lexemes [Wikidata Property:P8478](https://www.wikidata.org/wiki/Property:P8478)/ example [usage Wikidata](https://w.wiki/3B7P). This script is maybe not that useful to run for anyone else besides the author in its current form. It is shared here to help others get started writing scripts to improve Wikidata.
 
 It would be interesting to edit it to monitor the SAOB website for newly published articles/words.
 
