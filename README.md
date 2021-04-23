@@ -21,17 +21,11 @@ python PIP:
 Please create a bot password for running the script for
 safety reasons here: https://www.wikidata.org/wiki/Special:BotPasswords
 
-Add the following variables to your ~/.bashrc (recommended): 
-export LEXUSE_USERNAME="username"
-export LEXUSE_PASSWORD="password"
-
-Alternatively edit the file named config.py yourself and adjust the following
+Copy config.example.py to config.py yourself and adjust the following
 content:
 
 username = "username"
 password= "password"
-
-And delete the 2 lines related to environment labels.
 
 # License
 The code for crawling the SAOB website is not covered by license file, see the source URL in that file for more information.
