@@ -12,11 +12,13 @@ import loglevel
 
 # Constants
 wd_prefix = "http://www.wikidata.org/entity/"
+count_only = False
 
-print("Logging in with Wikibase Integrator")
-login_instance = wbi_login.Login(
-    user=config.username, pwd=config.password
-)
+if not count_only:
+    print("Logging in with Wikibase Integrator")
+    login_instance = wbi_login.Login(
+        user=config.username, pwd=config.password
+    )
 #download all swedish lexemes via sparql (~23000 as of 2021-04-05)
 #dictionary with word as key and list in the value
 #list[0] = lid
@@ -44,9 +46,9 @@ offset {i}
         print("No lexeme found")
     else:
         print("adding lexemes to list")
-        pprint(results.keys())
-        pprint(results["results"].keys())
-        pprint(len(results["results"]["bindings"]))
+        # pprint(results.keys())
+        # pprint(results["results"].keys())
+        # pprint(len(results["results"]["bindings"]))
         for result in results["results"]["bindings"]:
             #print(result)
             #*************************
@@ -100,29 +102,36 @@ print(f"loaded {count} saob lines into dictionary with length {len(saob_data)}")
 print(f"loaded {count} saob lines into list with length {len(saob_wordlist)}")
 # exit(0)
 # go through all lexemes missing SAOB identifier
+match_count = 0
+if count_only:
+    print("Counting all matches that can be uploaded")
 for lexeme in lexemes_list:
     #lookup
     lexeme_data = lexemes_data[lexeme]
-    print(f"Working on {lexeme_data[0]}: {lexeme}")
+    if not count_only:
+        print(f"Working on {lexeme_data[0]}: {lexeme}")
     value_count = 0
     saob_indexes = []
     if lexeme in saob_wordlist:
         for count, value in enumerate(saob_wordlist):
             if value == lexeme:
-                print(count, value)
+                # print(count, value)
                 saob_indexes.append(count)
                 value_count += 1
         if value_count > 1:
-            print(f"Found more than 1 value = complex, skipping")
+            if not count_only:
+                print(f"Found more than 1 value = complex, skipping")
         elif value_count == 1:
             saob_worddata = saob_data[saob_indexes[0]]
             saob_category = saob_worddata[0]
             number = saob_worddata[1]
             saob_id = saob_worddata[2]
             if number != 0:
-                print(f"Found number > 0 = complex, skipping")
+                if not count_only:
+                    print(f"Found number > 0 = complex, skipping")
             else:
-                print(f"found match: category: {saob_worddata[0]} id: {saob_worddata[2]}")
+                if not count_only:
+                    print(f"found match: category: {saob_worddata[0]} id: {saob_worddata[2]}")
                 #check if categories match
                 category = None
                 if saob_category == "verb":
@@ -134,46 +143,54 @@ for lexeme in lexemes_list:
                 elif saob_category == "adv":
                     category = "Q380057"
                 else:
-                    print(f"Did not recognize category {saob_category}, skipping")
+                    if not count_only:
+                        print(f"Did not recognize category {saob_category}, skipping")
                 if category is not None:
                     if category == lexeme_data[1]:
-                        print("Hooray categories match, uploading")
-                        #*************************
-                        # upload
-                        #*************************
-                        lemma = lexeme
-                        lid = lexeme_data[0]
-                        print(f"Uploading id to {lid}: {lemma}")
-                        # TODO if numbered
-                        # - fetch lexeme using wbi
-                        # - present to user
-                        # - ask user which if one matches
-                        print(f"Adding {saob_id} to {lid}")
-                        saob_statement = wbi_core.ExternalID(
-                            prop_nr="P8478",
-                            value=saob_id,
-                        )
-                        described_by_source = wbi_core.ItemID(
-                            prop_nr="P1343",
-                            value="Q1935308"
-                        )
-                        item = wbi_core.ItemEngine(
-                            data=[saob_statement,
-                                  described_by_source],
-                            #append_value="P8478",
-                            item_id=lid
-                        )
-                        # debug WBI error
-                        print(item.get_json_representation())
-                        result = item.write(
-                            login_instance,
-                            edit_summary="Added SAOB identifier with [[Wikidata:Tools/LexSAOB]]"
-                        )
-                        #if config.debug_json:
-                        #logging.debug(f"result from WBI:{result}")
-                        print(f"{wd_prefix}{lid}")
-                        # exit(0)
+                        if count_only:
+                            match_count += 1
+                        else:
+                            print("Hooray categories match, uploading")
+                            #*************************
+                            # upload
+                            #*************************
+                            lemma = lexeme
+                            lid = lexeme_data[0]
+                            print(f"Uploading id to {lid}: {lemma}")
+                            # TODO if numbered
+                            # - fetch lexeme using wbi
+                            # - present to user
+                            # - ask user which if one matches
+                            print(f"Adding {saob_id} to {lid}")
+                            saob_statement = wbi_core.ExternalID(
+                                prop_nr="P8478",
+                                value=saob_id,
+                            )
+                            described_by_source = wbi_core.ItemID(
+                                prop_nr="P1343",
+                                value="Q1935308"
+                            )
+                            item = wbi_core.ItemEngine(
+                                data=[saob_statement,
+                                      described_by_source],
+                                #append_value="P8478",
+                                item_id=lid
+                            )
+                            # debug WBI error
+                            #print(item.get_json_representation())
+                            result = item.write(
+                                login_instance,
+                                edit_summary="Added SAOB identifier with [[Wikidata:Tools/LexSAOB]]"
+                            )
+                            #if config.debug_json:
+                            #logging.debug(f"result from WBI:{result}")
+                            print(f"{wd_prefix}{lid}")
+                            # exit(0)
                     else:
-                        print("Categories did not match :/ - skipping")
+                        if not count_only:
+                            print("Categories did not match :/ - skipping")
     else:
-        print(f"{lexeme} not found in SAOB wordlist")
+        if not count_only:
+            print(f"{lexeme} not found in SAOB wordlist")
+if count_only:
+    print(f"Total count {match_count}")
