@@ -66,7 +66,10 @@ def check_matching_category(lexeme: wikidata_lexeme.Lexeme = None,
     #     logger.info(f"found match: category: {saob_entry.lexical_category} id: {saob_entry.id}")
     # check if categories match
     category = None
-    if saob_entry.lexical_category == "verb":
+    if saob_entry.lexical_category == "" or saob_entry.lexical_category is None:
+        if not count_only:
+            logging.info("No category found")
+    elif saob_entry.lexical_category == "verb":
         category = "Q24905"
     elif saob_entry.lexical_category == "subst":
         # TODO handle affixes like -fil also being marked as subst in SAOB
@@ -75,9 +78,10 @@ def check_matching_category(lexeme: wikidata_lexeme.Lexeme = None,
         category = "Q34698"
     elif saob_entry.lexical_category == "adv":
         category = "Q380057"
-    elif saob_entry.lexical_category == "" or saob_entry.lexical_category is None:
-        if not count_only:
-            logging.info("No category found")
+    elif (saob_entry.lexical_category == "prefix" or
+          saob_entry.lexical_category == "suffix" or
+          saob_entry.lexical_category == "affix"):
+        category = "Q62155"
     else:
         if not count_only:
             logging.error(f"Did not recognize category {saob_entry.lexical_category}, skipping")
