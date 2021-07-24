@@ -95,15 +95,21 @@ def check_matching_category(lexeme: wikidata_lexeme.Lexeme = None,
         saob_entry.lexical_category == "prefix" or
         saob_entry.lexical_category == "suffix" or
         saob_entry.lexical_category == "affix" or
-        # this covers all special cases like this one: https://svenska.se/saob/?id=O_0283-0242.Qqdq&pz=5
-        "(" in saob_entry.lexical_category
     ):
         category = "Q62155"
+    elif (
+        # this covers all special cases like this one: https://svenska.se/saob/?id=O_0283-0242.Qqdq&pz=5
+        "(" in saob_entry.lexical_category or
+        "ssgled" in saob_entry.lexical_category
+    ):
+        # ignore silently
+        return False
     else:
         if not count_only:
             logging.error(f"Did not recognize category "
                           f"{saob_entry.lexical_category} on "
                           f"{saob_entry.url()}, skipping")
+            return False
     if category is not None:
         if category == lexeme.lexical_category:
             return True
