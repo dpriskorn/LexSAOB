@@ -94,7 +94,7 @@ def check_matching_category(lexeme: wikidata_lexeme.Lexeme = None,
     elif (
         saob_entry.lexical_category == "prefix" or
         saob_entry.lexical_category == "suffix" or
-        saob_entry.lexical_category == "affix" or
+        saob_entry.lexical_category == "affix"
     ):
         category = "Q62155"
     elif (
