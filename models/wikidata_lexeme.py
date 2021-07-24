@@ -1,3 +1,7 @@
+# Constants
+wd_prefix = "http://www.wikidata.org/entity/"
+
+
 class Lexeme():
     id: str = None
     lemma: str = None
@@ -10,3 +14,6 @@ class Lexeme():
         self.id = id
         self.lemma = lemma
         self.lexical_category = lexical_category
+
+    def url(self):
+        return f"{wd_prefix}{self.id}"

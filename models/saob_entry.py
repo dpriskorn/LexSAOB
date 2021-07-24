@@ -13,3 +13,6 @@ class SAOBEntry():
         self.lemma = lemma
         self.lexical_category = lexical_category
         self.number = number
+
+    def url(self):
+        return f"https://www.saob.se/artikel/?unik={self.id}"

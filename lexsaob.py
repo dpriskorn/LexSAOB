@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # Licensed under GPLv3+ i.e. GPL version 3 or later.
 import logging
-from typing import Dict, List, Union
-from urllib.parse import urlparse, parse_qsl
-from pprint import pprint
 from csv import reader
+from urllib.parse import urlparse, parse_qsl
 
 from wikibaseintegrator import wbi_core, wbi_login
 
@@ -51,7 +49,7 @@ def upload_to_wikidata(lexeme: wikidata_lexeme.Lexeme = None,
     )
     # if config.debug_json:
     # logging.debug(f"result from WBI:{result}")
-    print(f"{wd_prefix}{lexeme.id}")
+    print(lexeme.url())
     # exit(0)
 
 
@@ -69,22 +67,43 @@ def check_matching_category(lexeme: wikidata_lexeme.Lexeme = None,
     if saob_entry.lexical_category == "" or saob_entry.lexical_category is None:
         if not count_only:
             logging.info("No category found")
-    elif saob_entry.lexical_category == "verb":
+    elif "verb" in saob_entry.lexical_category:
         category = "Q24905"
-    elif saob_entry.lexical_category == "subst":
-        # TODO handle affixes like -fil also being marked as subst in SAOB
-        category = "Q1084"
-    elif saob_entry.lexical_category == "adj":
+    elif "subst" in saob_entry.lexical_category:
+        if "-" in saob_entry.lemma:
+            # handle affixes like -fil also being marked as subst in SAOB
+            category = "Q62155"
+        else:
+            category = "Q1084"
+    elif "adj" in saob_entry.lexical_category:
         category = "Q34698"
-    elif saob_entry.lexical_category == "adv":
+    elif "adv" in saob_entry.lexical_category:
         category = "Q380057"
-    elif (saob_entry.lexical_category == "prefix" or
-          saob_entry.lexical_category == "suffix" or
-          saob_entry.lexical_category == "affix"):
+    elif "konj" in saob_entry.lexical_category:
+        category = "Q36484"
+    elif "interj" in saob_entry.lexical_category:
+        category = "Q83034"
+    elif "prep" in saob_entry.lexical_category:
+        category = "Q4833830"
+    elif "räkn" in saob_entry.lexical_category:
+        category = "Q63116"
+    elif "artikel" in saob_entry.lexical_category:
+        category = "Q103184"
+    elif "pron" in saob_entry.lexical_category:
+        category = "Q36224"
+    elif (
+        saob_entry.lexical_category == "prefix" or
+        saob_entry.lexical_category == "suffix" or
+        saob_entry.lexical_category == "affix" or
+        # this covers all special cases like this one: https://svenska.se/saob/?id=O_0283-0242.Qqdq&pz=5
+        "(" in saob_entry.lexical_category
+    ):
         category = "Q62155"
     else:
         if not count_only:
-            logging.error(f"Did not recognize category {saob_entry.lexical_category}, skipping")
+            logging.error(f"Did not recognize category "
+                          f"{saob_entry.lexical_category} on "
+                          f"{saob_entry.url()}, skipping")
     if category is not None:
         if category == lexeme.lexical_category:
             return True
@@ -146,7 +165,8 @@ offset {i}
             lexemes_data[lemma] = lexeme
             # Add lemma to list (used for optimization)
             lexeme_lemma_list.append(lemma)
-print(f"{len(lexeme_lemma_list)} fetched")
+lexemes_count = len(lexeme_lemma_list)
+print(f"{lexemes_count} fetched")
 # exit(0)
 # load all saab words into a list that can be searched
 # load all saab ids into a list we can lookup in using the index.
@@ -193,17 +213,18 @@ print(f"loaded {count} saob lines into list with length {len(saob_lemma_list)}")
 # go through all lexemes missing SAOB identifier
 match_count = 0
 processed_count = 0
+skipped_multiple_matches = 0
 if count_only:
     print("Counting all matches that can be uploaded")
 for lexeme in lexeme_lemma_list:
-    if processed_count % 1000 == 0:
-        print(f"Processed {processed_count} lexemes")
+    if processed_count > 0 and processed_count % 1000 == 0:
+        print(f"Processed {processed_count} lexemes out of "
+              f"{lexemes_count} ({round(processed_count * 100 / lexemes_count)}%)")
     lexeme: wikidata_lexeme.Lexeme = lexemes_data[lexeme]
     if not count_only:
         logging.info(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category}")
     value_count = 0
     matching_saob_indexes = []
-    skipped_multiple_matches = 0
     if lexeme.lemma in saob_lemma_list:
         # Count number of hits
         for count, lemma in enumerate(saob_lemma_list):
@@ -217,18 +238,22 @@ for lexeme in lexeme_lemma_list:
                 adj_count = 0
                 subst_count = 0
                 verb_count = 0
+                adjective_regex = "adj"
                 for index in matching_saob_indexes:
                     entry = saob_data[index]
-                    if entry.lexical_category == "subst":
+                    if "subst" in entry.lexical_category:
+                        logging.debug(f"Detected noun: {entry.lexical_category}")
                         subst_count += 1
-                    if entry.lexical_category == "verb":
+                    if "verb" in entry.lexical_category:
+                        logging.debug(f"Detected verb: {entry.lexical_category}")
                         verb_count += 1
-                    if entry.lexical_category == "adj":
+                    if "adj" in entry.lexical_category:
+                        logging.debug(f"Detected adjective: {entry.lexical_category}")
                         adj_count += 1
                 for index in matching_saob_indexes:
                     entry = saob_data[index]
                     logging.debug(f"index {index} lemma: {entry.lemma} {entry.lexical_category} "
-                          f"number {entry.number} id {entry.id}")
+                          f"number {entry.number}, see {entry.url()}")
                     result: bool = check_matching_category(lexeme=lexeme,
                                                            saob_entry=entry)
                     if result:
@@ -255,9 +280,9 @@ for lexeme in lexeme_lemma_list:
                             upload_to_wikidata(lexeme=lexeme,
                                                saob_entry=entry)
         elif value_count == 1:
-            logger.debug("Only 1 matching lemma")
             # Only 1 search result in the saob wordlist so pick it
             entry = saob_data[matching_saob_indexes[0]]
+            logger.debug(f"Only 1 matching lemma, see {entry.url()}")
             result = check_matching_category(lexeme=lexeme,
                                              saob_entry=entry)
             if result:
@@ -267,7 +292,7 @@ for lexeme in lexeme_lemma_list:
                                        saob_entry=entry)
     else:
         if not count_only:
-            logging.info(f"{lexeme.lemma} not found in SAOB wordlist")
+            logging.debug(f"{lexeme.lemma} not found in SAOB wordlist")
     processed_count += 1
 print(f"Processed {processed_count} lexemes. "
       f"Found {match_count} matches "
