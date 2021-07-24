@@ -5,6 +5,9 @@ It would be interesting to edit it to monitor the SAOB website for newly publish
 
 This script can easily be modified to create new lexemes for every word found in the list from SAOB. Unfortunately that is not legal because of the database protection law.
 
+## Thanks
+Big thanks to Magnus Sälgö for reverse engineering of the SAOB website to make this possible. <3
+
 ## Requirements
 * wikibaseintegrator
 
