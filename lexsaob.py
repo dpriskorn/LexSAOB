@@ -268,5 +268,9 @@ for lexeme in lexeme_lemma_list:
     else:
         if not count_only:
             logging.info(f"{lexeme.lemma} not found in SAOB wordlist")
-print(f"Total number of matches {match_count} out of which {skipped_multiple_matches} "
-      f"was skipped because they had the same lexical category.")
+    processed_count += 1
+print(f"Processed {processed_count} lexemes. "
+      f"Found {match_count} matches "
+      f"out of which {skipped_multiple_matches} "
+      f"was skipped because they had multiple entries "
+      f"with the same lexical category.")
