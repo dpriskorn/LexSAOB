@@ -89,13 +89,13 @@ with open('saob_2021-01-06.csv', 'r') as read_obj:
         word = row[1]
         saob_category = row[2]
         if row[3] == '':
-            number = 0
+            saob_number = 0
         else:
-            number = int(row[3])
+            saob_number = int(row[3])
         url = urlparse(row[4])
         # print(url.query)
         saob_id = dict(parse_qsl(url.query))["id"]
-        saob_data[count] = [saob_category, number, saob_id, word]
+        saob_data[count] = [saob_category, saob_number, saob_id, word]
         saob_wordlist.append(word)
         count += 1
 print(f"loaded {count} saob lines into dictionary with length {len(saob_data)}")
@@ -106,7 +106,9 @@ match_count = 0
 if count_only:
     print("Counting all matches that can be uploaded")
 for lexeme in lexemes_list:
-    #lookup
+    # lookup the data:
+    # 0: LID
+    # 1: lexical category
     lexeme_data = lexemes_data[lexeme]
     if not count_only:
         print(f"Working on {lexeme_data[0]}: {lexeme}")
@@ -121,14 +123,18 @@ for lexeme in lexemes_list:
         if value_count > 1:
             if not count_only:
                 print(f"Found more than 1 value = complex, skipping")
+                # TODO loop through the values and see if any categories match
         elif value_count == 1:
+            # Only 1 search result in the saob wordlist
             saob_worddata = saob_data[saob_indexes[0]]
             saob_category = saob_worddata[0]
-            number = saob_worddata[1]
+            # It's unclear what this number means
+            saob_number = saob_worddata[1]
             saob_id = saob_worddata[2]
-            if number != 0:
+            if saob_number is not None and saob_number > 0:
                 if not count_only:
                     print(f"Found number > 0 = complex, skipping")
+                    # TODO find out what the number means and how it affects the matching
             else:
                 if not count_only:
                     print(f"found match: category: {saob_worddata[0]} id: {saob_worddata[2]}")
@@ -137,6 +143,7 @@ for lexeme in lexemes_list:
                 if saob_category == "verb":
                     category = "Q24905"
                 elif saob_category == "subst":
+                    # TODO handle affixes like -fil also being marked as subst in saob
                     category = "Q1084"
                 elif saob_category == "adj":
                     category = "Q34698"
