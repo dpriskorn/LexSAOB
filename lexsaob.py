@@ -15,7 +15,7 @@ from models import wikidata_lexeme, saob_entry
 wd_prefix = "http://www.wikidata.org/entity/"
 count_only = False
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 def upload_to_wikidata(lexeme: wikidata_lexeme.Lexeme = None,
@@ -75,15 +75,18 @@ def check_matching_category(lexeme: wikidata_lexeme.Lexeme = None,
         category = "Q34698"
     elif saob_entry.lexical_category == "adv":
         category = "Q380057"
+    elif saob_entry.lexical_category == "" or saob_entry.lexical_category is None:
+        if not count_only:
+            logging.info("No category found")
     else:
         if not count_only:
-            print(f"Did not recognize category {saob_entry.lexical_category}, skipping")
+            logging.error(f"Did not recognize category {saob_entry.lexical_category}, skipping")
     if category is not None:
         if category == lexeme.lexical_category:
             return True
         else:
             if not count_only:
-                print("Categories did not match :/ - skipping")
+                logging.info("Categories did not match, skipping")
             return False
 
 
@@ -185,12 +188,15 @@ print(f"loaded {count} saob lines into list with length {len(saob_lemma_list)}")
 # exit(0)
 # go through all lexemes missing SAOB identifier
 match_count = 0
+processed_count = 0
 if count_only:
     print("Counting all matches that can be uploaded")
 for lexeme in lexeme_lemma_list:
+    if processed_count % 1000 == 0:
+        print(f"Processed {processed_count} lexemes")
     lexeme: wikidata_lexeme.Lexeme = lexemes_data[lexeme]
     if not count_only:
-        print(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category}")
+        logging.info(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category}")
     value_count = 0
     matching_saob_indexes = []
     skipped_multiple_matches = 0
@@ -217,12 +223,12 @@ for lexeme in lexeme_lemma_list:
                         adj_count += 1
                 for index in matching_saob_indexes:
                     entry = saob_data[index]
-                    print(f"index {index} lemma: {entry.lemma} {entry.lexical_category} "
+                    logging.debug(f"index {index} lemma: {entry.lemma} {entry.lexical_category} "
                           f"number {entry.number} id {entry.id}")
                     result: bool = check_matching_category(lexeme=lexeme,
                                                            saob_entry=entry)
                     if result:
-                        print("Hooray categories match")
+                        logging.info("Categories match")
                         match_count += 1
                         if not count_only:
                             if entry.lexical_category == "subst":
@@ -257,6 +263,6 @@ for lexeme in lexeme_lemma_list:
                                        saob_entry=entry)
     else:
         if not count_only:
-            print(f"{lexeme.lemma} not found in SAOB wordlist")
+            logging.info(f"{lexeme.lemma} not found in SAOB wordlist")
 print(f"Total number of matches {match_count} out of which {skipped_multiple_matches} "
       f"was skipped because they had the same lexical category.")
