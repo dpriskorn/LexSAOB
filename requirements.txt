@@ -1,1 +1,1 @@
-wikibaseintegrator
+wikibaseintegrator@0.10.1
