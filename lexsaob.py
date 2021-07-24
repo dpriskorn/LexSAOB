@@ -125,7 +125,7 @@ offset {i}
     if len(results) == 0:
         print("No lexeme found")
     else:
-        print("adding lexemes to list")
+        # print("adding lexemes to list")
         # pprint(results.keys())
         # pprint(results["results"].keys())
         # pprint(len(results["results"]["bindings"]))
