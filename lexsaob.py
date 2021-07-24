@@ -188,14 +188,12 @@ match_count = 0
 if count_only:
     print("Counting all matches that can be uploaded")
 for lexeme in lexeme_lemma_list:
-    # lookup the data:
-    # 0: LID
-    # 1: lexical category
     lexeme: wikidata_lexeme.Lexeme = lexemes_data[lexeme]
     if not count_only:
         print(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category}")
     value_count = 0
     matching_saob_indexes = []
+    skipped_multiple_matches = 0
     if lexeme.lemma in saob_lemma_list:
         # Count number of hits
         for count, lemma in enumerate(saob_lemma_list):
@@ -206,8 +204,6 @@ for lexeme in lexeme_lemma_list:
         if value_count > 1:
             if not count_only:
                 logger.debug(f"Found more than 1 matching lemma = complex")
-                # TODO handle multiple subst, verb
-                # TODO count verb, subst
                 adj_count = 0
                 subst_count = 0
                 verb_count = 0
@@ -232,16 +228,20 @@ for lexeme in lexeme_lemma_list:
                             if entry.lexical_category == "subst":
                                 if subst_count > 1:
                                     logging.info("More that one noun found. Skipping")
+                                    skipped_multiple_matches += 1
                                     continue
                             if entry.lexical_category == "verb":
                                 if verb_count > 1:
                                     logging.info("More that one verb found. Skipping")
+                                    skipped_multiple_matches += 1
                                     continue
                             if entry.lexical_category == "adj":
                                 if adj_count > 1:
                                     logging.info("More that one adj found. Skipping")
+                                    skipped_multiple_matches += 1
                                     continue
-                            # TODO fetch data from saob and let the user decide whether any match
+                            # TODO scrape entry definitions from saob and let the user decide
+                            # whether any match the senses of the lexeme if any
                             upload_to_wikidata(lexeme=lexeme,
                                                saob_entry=entry)
         elif value_count == 1:
@@ -258,5 +258,5 @@ for lexeme in lexeme_lemma_list:
     else:
         if not count_only:
             print(f"{lexeme.lemma} not found in SAOB wordlist")
-print(f"Total number of matches {match_count}")
-
+print(f"Total number of matches {match_count} out of which {skipped_multiple_matches} "
+      f"was skipped because they had the same lexical category.")
