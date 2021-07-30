@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qsl
 from wikibaseintegrator import wbi_core, wbi_login
 
 import config
-from models import wikidata_lexeme, saob_entry
+from models import wikidata, saob_entry
 
 # Constants
 wd_prefix = "http://www.wikidata.org/entity/"
@@ -17,7 +17,7 @@ count_only = False
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
-def upload_to_wikidata(lexeme: wikidata_lexeme.Lexeme = None,
+def upload_to_wikidata(lexeme: wikidata.Lexeme = None,
                        saob_entry: saob_entry.SAOBEntry = None):
     """Upload to enrich the wonderfull Wikidata <3"""
     if lexeme is None or saob_entry is None:
@@ -54,7 +54,7 @@ def upload_to_wikidata(lexeme: wikidata_lexeme.Lexeme = None,
     # exit(0)
 
 
-def check_matching_category(lexeme: wikidata_lexeme.Lexeme = None,
+def check_matching_category(lexeme: wikidata.Lexeme = None,
                             saob_entry: saob_entry.SAOBEntry = None) -> bool:
     logger = logging.getLogger(__name__)
     if lexeme is None or saob_entry is None:
@@ -166,7 +166,7 @@ def fetch_all_lexemes_without_saob_id():
                 lemma = result["lemma"]["value"]
                 lid = result["lexemeId"]["value"].replace(wd_prefix, "")
                 lexical_category = result["category"]["value"].replace(wd_prefix, "")
-                lexeme = wikidata_lexeme.Lexeme(
+                lexeme = wikidata.Lexeme(
                     id=lid,
                     lemma=lemma,
                     lexical_category=lexical_category
@@ -249,7 +249,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
         if processed_count > 0 and processed_count % 1000 == 0:
             print(f"Processed {processed_count} lexemes out of "
                   f"{lexemes_count} ({round(processed_count * 100 / lexemes_count)}%)")
-        lexeme: wikidata_lexeme.Lexeme = lexemes_data[lexeme]
+        lexeme: wikidata.Lexeme = lexemes_data[lexeme]
         if not count_only:
             logging.info(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category}")
         value_count = 0
