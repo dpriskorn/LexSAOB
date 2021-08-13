@@ -88,8 +88,11 @@ class ForeignID:
                  source_item_id: str = None,
                  no_value: bool = False):
         self.id = id
+        if property is None:
+            raise Exception("Property is mandatory.")
         self.property = EntityID(property).to_string()
-        self.source_item_id = EntityID(source_item_id).to_string()
+        if source_item_id is not None:
+            self.source_item_id = EntityID(source_item_id).to_string()
         self.no_value = no_value
 
 class Lexeme:
