@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # def upload_to_wikidata(lexeme: wikidata.Lexeme = None,
 #                        saob_entry: saob_entry.SAOBEntry = None):
-#     """Upload to enrich the wonderfull Wikidata <3"""
+#     """Upload to enrich the wonderful Wikidata <3"""
 #     if lexeme is None or saob_entry is None:
 #         raise ValueError("Did not get the arguments needed")
 #     print(f"Uploading id to {lexeme.id}: {lexeme.lemma}")
