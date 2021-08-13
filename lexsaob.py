@@ -8,15 +8,16 @@ from urllib.parse import urlparse, parse_qsl
 from wikibaseintegrator import wbi_login
 
 import config
-from models import wikidata, saob_entry
+from models import wikidata, saob
 
 # Constants
+from models.saob import SAOBSubentry
 from models.wikidata import LexemeLanguage, ForeignID
 
 wd_prefix = "http://www.wikidata.org/entity/"
 count_only = False
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Pseudo code
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_matching_category(lexeme: wikidata.Lexeme = None,
-                            saob_entry: saob_entry.SAOBEntry = None) -> bool:
+                            saob_entry: saob.SAOBEntry = None) -> bool:
     logger = logging.getLogger(__name__)
     if lexeme is None or saob_entry is None:
         raise ValueError("Did not get the arguments needed")
@@ -133,7 +134,7 @@ def load_saob_into_memory():
             # print(url.query)
             saob_id = dict(parse_qsl(url.query))["id"]
             # Create object
-            entry = saob_entry.SAOBEntry(
+            entry = saob.SAOBEntry(
                 id=saob_id,
                 lexical_category=saob_category,
                 number=saob_number,
@@ -249,11 +250,19 @@ def process_lexemes(lexeme_lemma_list: List = None,
         else:
             if not count_only:
                 logging.debug(f"{lexeme.lemma} not found in SAOB wordlist")
-                # TODO add SAOB=no_value to lexeme
-                lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
-                    property="P8478",
-                    no_value=True
-                ))
+                if config.add_no_value:
+                    # Add SAOB=no_value to lexeme
+                    lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
+                        property="P8478",
+                        no_value=True
+                    ))
+                logger.info("Searching for the lemma on saob.se to find a subentry")
+                subentry = SAOBSubentry(lexeme.lemma)
+                found = subentry.search_using_api()
+                if found:
+                    logger.info(f"Found subentry match for {lexeme.lemma}")
+                    # Add new property (to be proposed) SAOB section ID
+                    # TODO upload once new property is proposed and created
         processed_count += 1
     print(f"Processed {processed_count} lexemes. "
           f"Found {match_count} matches "
