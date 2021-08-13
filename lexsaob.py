@@ -276,7 +276,6 @@ def process_lexemes(lexeme_lemma_list: List = None,
         else:
             if not count_only:
                 logging.debug(f"{lexeme.lemma} not found in SAOB wordlist")
-            else:
                 # TODO add SAOB=no_value to lexeme
                 lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
                     property="P8478",
