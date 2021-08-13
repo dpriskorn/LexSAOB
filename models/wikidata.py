@@ -119,24 +119,32 @@ class Lexeme:
             raise Exception("Foreign id was None")
         elif foreign_id.no_value:
             # We did not find the lemma in SAOB
-            print(f"Uploading no_value statement to {self.id}: {self.lemma}")
-            statement = wbi_datatype.ExternalID(
-                prop_nr=foreign_id.property,
-                type="novalue",
-            )
-            item = wbi_core.ItemEngine(
-                data=[statement],
-                item_id=self.id
-            )
-            # debug WBI error
-            # print(item.get_json_representation())
-            result = item.write(
-                config.login_instance,
-                edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
-            )
-            logger.debug(f"result from WBI:{result}")
-            print(self.url())
-            exit(0)
+            # See https://www.saob.se/artikel/?pz=1&seek=%C3%A4rva
+            # Skip unsupported lemmas
+            supported_by_saob = "abcdefghijklmnopqrstu"
+            if self.lemma[:1] not in supported_by_saob:
+                logger.debug("Skip adding no-value to this lemma because "
+                             "SAOB only published lemma from a-u.")
+            else:
+                print(f"Uploading no_value statement to {self.id}: {self.lemma}")
+                statement = wbi_datatype.ExternalID(
+                    prop_nr=foreign_id.property,
+                    value=None,
+                    snak_type="novalue",
+                )
+                item = wbi_core.ItemEngine(
+                    data=[statement],
+                    item_id=self.id
+                )
+                # debug WBI error
+                # print(item.get_json_representation())
+                result = item.write(
+                    config.login_instance,
+                    edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
+                )
+                logger.debug(f"result from WBI:{result}")
+                print(self.url())
+                #exit(0)
         else:
             # We found the lemma in SAOB
             print(f"Uploading {foreign_id.id} to {self.id}: {self.lemma}")
@@ -339,7 +347,7 @@ class LexemeLanguage:
         print("Fetching all lexemes")
         lexemes_data = {}
         lexeme_lemma_list = []
-        for i in range(0, 30000, 10000):
+        for i in range(0, 30, 10000):
             print(i)
             results = execute_sparql_query(f"""
                     select ?lexemeId ?lemma ?category
@@ -352,7 +360,7 @@ class LexemeLanguage:
                     ?lexemeId wdt:P8478 [].
                   }}
                 }}
-        limit 10000
+        limit 300
         offset {i}
             """)
             if len(results) == 0:
