@@ -5,53 +5,55 @@ from csv import reader
 from typing import List, Dict
 from urllib.parse import urlparse, parse_qsl
 
-from wikibaseintegrator import wbi_core, wbi_login
+from wikibaseintegrator import wbi_login
 
 import config
 from models import wikidata, saob_entry
 
 # Constants
+from models.wikidata import LexemeLanguage, ForeignID
+
 wd_prefix = "http://www.wikidata.org/entity/"
 count_only = False
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def upload_to_wikidata(lexeme: wikidata.Lexeme = None,
-                       saob_entry: saob_entry.SAOBEntry = None):
-    """Upload to enrich the wonderfull Wikidata <3"""
-    if lexeme is None or saob_entry is None:
-        raise ValueError("Did not get the arguments needed")
-    print(f"Uploading id to {lexeme.id}: {lexeme.lemma}")
-    # TODO if numbered
-    # - fetch lexeme using wbi
-    # - present to user
-    # - ask user which if one matches
-    print(f"Adding {saob_entry.id}")
-    saob_statement = wbi_core.ExternalID(
-        prop_nr="P8478",
-        value=saob_entry.id,
-    )
-    described_by_source = wbi_core.ItemID(
-        prop_nr="P1343",
-        value="Q1935308"
-    )
-    item = wbi_core.ItemEngine(
-        data=[saob_statement,
-              described_by_source],
-        # append_value="P8478",
-        item_id=lexeme.id
-    )
-    # debug WBI error
-    # print(item.get_json_representation())
-    result = item.write(
-        login_instance,
-        edit_summary="Added SAOB identifier with [[Wikidata:Tools/LexSAOB]]"
-    )
-    # if config.debug_json:
-    # logging.debug(f"result from WBI:{result}")
-    print(lexeme.url())
-    # exit(0)
+# def upload_to_wikidata(lexeme: wikidata.Lexeme = None,
+#                        saob_entry: saob_entry.SAOBEntry = None):
+#     """Upload to enrich the wonderfull Wikidata <3"""
+#     if lexeme is None or saob_entry is None:
+#         raise ValueError("Did not get the arguments needed")
+#     print(f"Uploading id to {lexeme.id}: {lexeme.lemma}")
+#     # TODO if numbered
+#     # - fetch lexeme using wbi
+#     # - present to user
+#     # - ask user which if one matches
+#     print(f"Adding {saob_entry.id}")
+#     saob_statement = wbi_core.ExternalID(
+#         prop_nr="P8478",
+#         value=saob_entry.id,
+#     )
+#     described_by_source = wbi_core.ItemID(
+#         prop_nr="P1343",
+#         value="Q1935308"
+#     )
+#     item = wbi_core.ItemEngine(
+#         data=[saob_statement,
+#               described_by_source],
+#         # append_value="P8478",
+#         item_id=lexeme.id
+#     )
+#     # debug WBI error
+#     # print(item.get_json_representation())
+#     result = item.write(
+#         login_instance,
+#         edit_summary="Added SAOB identifier with [[Wikidata:Tools/LexSAOB]]"
+#     )
+#     # if config.debug_json:
+#     # logging.debug(f"result from WBI:{result}")
+#     print(lexeme.url())
+#     # exit(0)
 
 
 def check_matching_category(lexeme: wikidata.Lexeme = None,
@@ -127,60 +129,6 @@ if not count_only:
     )
 
 
-def fetch_all_lexemes_without_saob_id():
-    """download all swedish lexemes via sparql (~23000 as of 2021-04-05)"""
-    #dictionary with word as key and list in the value
-    #list[0] = lid
-    #list[1] = category Qid
-    print("Fetching all lexemes")
-    lexemes_data = {}
-    lexeme_lemma_list = []
-    for i in range(0,30000,10000):
-        print(i)
-        results = wbi_core.ItemEngine.execute_sparql_query(f"""
-                select ?lexemeId ?lemma ?category
-            WHERE {{
-              #hint:Query hint:optimizer "None".
-              ?lexemeId dct:language wd:Q9027;
-                        wikibase:lemma ?lemma;
-                        wikibase:lexicalCategory ?category.
-              MINUS{{
-                ?lexemeId wdt:P8478 [].
-              }}
-            }}
-    limit 10000
-    offset {i}
-        """)
-        if len(results) == 0:
-            print("No lexeme found")
-        else:
-            # print("adding lexemes to list")
-            # pprint(results.keys())
-            # pprint(results["results"].keys())
-            # pprint(len(results["results"]["bindings"]))
-            for result in results["results"]["bindings"]:
-                #print(result)
-                #*************************
-                # Handle result and upload
-                #*************************
-                lemma = result["lemma"]["value"]
-                lid = result["lexemeId"]["value"].replace(wd_prefix, "")
-                lexical_category = result["category"]["value"].replace(wd_prefix, "")
-                lexeme = wikidata.Lexeme(
-                    id=lid,
-                    lemma=lemma,
-                    lexical_category=lexical_category
-                )
-                # Populate the dictionary with lexeme objects
-                lexemes_data[lemma] = lexeme
-                # Add lemma to list (used for optimization)
-                lexeme_lemma_list.append(lemma)
-    lexemes_count = len(lexeme_lemma_list)
-    print(f"{lexemes_count} fetched")
-    # exit(0)
-    return lexeme_lemma_list, lexemes_data
-
-
 def load_saob_into_memory():
     # load all saab words into a list that can be searched
     # load all saab ids into a list we can lookup in using the index.
@@ -194,7 +142,7 @@ def load_saob_into_memory():
     saob_lemma_list = []
     saob_data = {}
     # open file in read mode
-    with open('saob_2021-01-06.csv', 'r') as read_obj:
+    with open('saob_2021-08-13.csv', 'r') as read_obj:
         # pass the file object to reader() to get the reader object
         csv_reader = reader(read_obj)
         count = 0
@@ -245,19 +193,19 @@ def process_lexemes(lexeme_lemma_list: List = None,
     skipped_multiple_matches = 0
     if count_only:
         print("Counting all matches that can be uploaded")
-    for lexeme in lexeme_lemma_list:
+    for lemma in lexeme_lemma_list:
         if processed_count > 0 and processed_count % 1000 == 0:
             print(f"Processed {processed_count} lexemes out of "
                   f"{lexemes_count} ({round(processed_count * 100 / lexemes_count)}%)")
-        lexeme: wikidata.Lexeme = lexemes_data[lexeme]
+        lexeme: wikidata.Lexeme = lexemes_data[lemma]
         if not count_only:
             logging.info(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category}")
         value_count = 0
         matching_saob_indexes = []
         if lexeme.lemma in saob_lemma_list:
             # Count number of hits
-            for count, lemma in enumerate(saob_lemma_list):
-                if lemma == lexeme.lemma:
+            for count, saob_lemma in enumerate(saob_lemma_list):
+                if saob_lemma == lexeme.lemma:
                     # print(count, value)
                     matching_saob_indexes.append(count)
                     value_count += 1
@@ -282,7 +230,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
                     for index in matching_saob_indexes:
                         entry = saob_data[index]
                         logging.debug(f"index {index} lemma: {entry.lemma} {entry.lexical_category} "
-                              f"number {entry.number}, see {entry.url()}")
+                                      f"number {entry.number}, see {entry.url()}")
                         result: bool = check_matching_category(lexeme=lexeme,
                                                                saob_entry=entry)
                         if result:
@@ -306,8 +254,11 @@ def process_lexemes(lexeme_lemma_list: List = None,
                                         continue
                                 # TODO scrape entry definitions from saob and let the user decide
                                 # whether any match the senses of the lexeme if any
-                                upload_to_wikidata(lexeme=lexeme,
-                                                   saob_entry=entry)
+                                lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
+                                    id=entry.id,
+                                    property="P8478",
+                                    source_item_id="Q1935308"
+                                ))
             elif value_count == 1:
                 # Only 1 search result in the saob wordlist so pick it
                 entry = saob_data[matching_saob_indexes[0]]
@@ -317,11 +268,20 @@ def process_lexemes(lexeme_lemma_list: List = None,
                 if result:
                     match_count += 1
                     if not count_only:
-                        upload_to_wikidata(lexeme=lexeme,
-                                           saob_entry=entry)
+                        lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
+                            id=saob_entry.id,
+                            property="P8478",
+                            source_item_id="Q1935308"
+                        ))
         else:
             if not count_only:
                 logging.debug(f"{lexeme.lemma} not found in SAOB wordlist")
+            else:
+                # TODO add SAOB=no_value to lexeme
+                lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
+                    property="P8478",
+                    no_value=True
+                ))
         processed_count += 1
     print(f"Processed {processed_count} lexemes. "
           f"Found {match_count} matches "
@@ -331,7 +291,10 @@ def process_lexemes(lexeme_lemma_list: List = None,
 
 
 def main():
-    lexemes_list, lexemes_data = fetch_all_lexemes_without_saob_id()
+    language = LexemeLanguage("sv")
+    language.fetch_all_lexemes_without_saob_id()
+    lexemes_list = language.lemma_list()
+    lexemes_data = language.data_dictionary_with_lemma_as_key()
     saob_list, saob_data = load_saob_into_memory()
     process_lexemes(lexeme_lemma_list=lexemes_list, lexemes_data=lexemes_data, saob_lemma_list=saob_list,
                     saob_data=saob_data)
