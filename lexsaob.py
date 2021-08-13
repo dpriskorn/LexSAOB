@@ -124,7 +124,7 @@ def check_matching_category(lexeme: wikidata.Lexeme = None,
 
 if not count_only:
     print("Logging in with Wikibase Integrator")
-    login_instance = wbi_login.Login(
+    config.login_instance = wbi_login.Login(
         user=config.username, pwd=config.password
     )
 
@@ -269,7 +269,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
                     match_count += 1
                     if not count_only:
                         lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
-                            id=saob_entry.id,
+                            id=entry.id,
                             property="P8478",
                             source_item_id="Q1935308"
                         ))

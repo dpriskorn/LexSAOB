@@ -158,7 +158,7 @@ class Lexeme:
             )
             logger.debug(f"result from WBI:{result}")
             print(self.url())
-            exit(0)
+            # exit(0)
 
 class Form:
     pass
