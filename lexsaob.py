@@ -16,44 +16,17 @@ from models.wikidata import LexemeLanguage, ForeignID
 wd_prefix = "http://www.wikidata.org/entity/"
 count_only = False
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-# def upload_to_wikidata(lexeme: wikidata.Lexeme = None,
-#                        saob_entry: saob_entry.SAOBEntry = None):
-#     """Upload to enrich the wonderfull Wikidata <3"""
-#     if lexeme is None or saob_entry is None:
-#         raise ValueError("Did not get the arguments needed")
-#     print(f"Uploading id to {lexeme.id}: {lexeme.lemma}")
-#     # TODO if numbered
-#     # - fetch lexeme using wbi
-#     # - present to user
-#     # - ask user which if one matches
-#     print(f"Adding {saob_entry.id}")
-#     saob_statement = wbi_core.ExternalID(
-#         prop_nr="P8478",
-#         value=saob_entry.id,
-#     )
-#     described_by_source = wbi_core.ItemID(
-#         prop_nr="P1343",
-#         value="Q1935308"
-#     )
-#     item = wbi_core.ItemEngine(
-#         data=[saob_statement,
-#               described_by_source],
-#         # append_value="P8478",
-#         item_id=lexeme.id
-#     )
-#     # debug WBI error
-#     # print(item.get_json_representation())
-#     result = item.write(
-#         login_instance,
-#         edit_summary="Added SAOB identifier with [[Wikidata:Tools/LexSAOB]]"
-#     )
-#     # if config.debug_json:
-#     # logging.debug(f"result from WBI:{result}")
-#     print(lexeme.url())
-#     # exit(0)
+# Pseudo code
+# first it gets all swedish lexemes
+# opens the list of entries in SAOB
+# tries to match each lexeme to an entry
+# if match found
+## uploads
+# else
+# add no-value to the lexeme
 
 
 def check_matching_category(lexeme: wikidata.Lexeme = None,
