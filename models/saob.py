@@ -47,6 +47,8 @@ class SAOBSubentry:
     #         raise Exception(f"Could not parse response, see {self.search_url()}")
 
     def search_using_api(self):
+        """Search for the lemma using the suggestions API
+        Return true if found and false otherwise"""
         logger = logging.getLogger(__name__)
         header = {
             "Accept": "application/json",
@@ -67,8 +69,10 @@ class SAOBSubentry:
                 # Clean away the dash
                 label = suggestion["label"].replace("-", "")
                 link = suggestion["link"]
+                # logger.debug(link)
                 if label == self.lemma:
                     logger.debug("We found a matching subentry!")
+                    # This parses strings like this "/artikel/?seek=helsko&pz=2#U_H593_49212"
                     pattern = "\/artikel\/\?seek=([\w%]+)&pz=\d#([A-Z]\w+)"
                     matches: Union[List[tuple], None] = re.findall(pattern, link)
                     logger.debug(f"matches:{matches} for {link}")
@@ -94,6 +98,8 @@ class SAOBSubentry:
             #raise AttributeError("no lemma")
 
     def url(self):
+        """Use the seek parameter and section id to
+        link directly to the subentry in saob.se"""
         try:
             return f"https://www.saob.se/artikel/?seek={self.seek_parameter}#{self.section_id}"
         except:
