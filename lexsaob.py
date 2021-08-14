@@ -256,13 +256,14 @@ def process_lexemes(lexeme_lemma_list: List = None,
                         property="P8478",
                         no_value=True
                     ))
-                logger.info("Searching for the lemma on saob.se to find a subentry")
-                subentry = SAOBSubentry(lexeme.lemma)
-                found = subentry.search_using_api()
-                if found:
-                    logger.info(f"Found subentry match for {lexeme.lemma}")
-                    # Add new property (to be proposed) SAOB section ID
-                    # TODO upload once new property is proposed and created
+                if config.match_subentry:
+                    logger.info("Searching for the lemma on saob.se to find a subentry")
+                    subentry = SAOBSubentry(lexeme.lemma)
+                    found = subentry.search_using_api()
+                    if found:
+                        logger.info(f"Found subentry match for {lexeme.lemma}")
+                        # Add new property (to be proposed) SAOB section ID
+                        # TODO upload once new property is proposed and created
         processed_count += 1
     print(f"Processed {processed_count} lexemes. "
           f"Found {match_count} matches "
