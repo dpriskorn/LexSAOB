@@ -113,7 +113,7 @@ class Lexeme:
 
     def upload_foreign_id_to_wikidata(self,
                                       foreign_id: ForeignID = None):
-        """Upload to enrich the wonderful Wikidata <3"""
+        """Upload to enrich the wonderfull Wikidata <3"""
         logger = logging.getLogger(__name__)
         if foreign_id is None:
             raise Exception("Foreign id was None")
