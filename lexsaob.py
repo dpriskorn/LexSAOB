@@ -165,6 +165,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
     match_count = 0
     processed_count = 0
     skipped_multiple_matches = 0
+    no_value_count = 0
     if count_only:
         print("Counting all matches that can be uploaded")
     for lemma in lexeme_lemma_list:
@@ -256,6 +257,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
                         property="P8478",
                         no_value=True
                     ))
+                no_value_count += 1
                 if config.match_subentry:
                     logger.info("Searching for the lemma on saob.se to find a subentry")
                     subentry = SAOBSubentry(lexeme.lemma)
@@ -269,7 +271,8 @@ def process_lexemes(lexeme_lemma_list: List = None,
           f"Found {match_count} matches "
           f"out of which {skipped_multiple_matches} "
           f"was skipped because they had multiple entries "
-          f"with the same lexical category.")
+          f"with the same lexical category. {no_value_count} "
+          f"entries with no main entry in SAOB was found")
 
 
 def main():
