@@ -6,6 +6,7 @@ from typing import List, Dict
 from urllib.parse import urlparse, parse_qsl
 
 from wikibaseintegrator import wbi_login
+from wikibaseintegrator import wbi_config
 
 import config
 from models import wikidata, saob
@@ -94,13 +95,6 @@ def check_matching_category(lexeme: wikidata.Lexeme = None,
             if not count_only:
                 logging.info("Categories did not match, skipping")
             return False
-
-
-if not count_only:
-    print("Logging in with Wikibase Integrator")
-    config.login_instance = wbi_login.Login(
-        user=config.username, pwd=config.password
-    )
 
 
 def load_saob_into_memory():
@@ -276,6 +270,13 @@ def process_lexemes(lexeme_lemma_list: List = None,
 
 
 def main():
+    if not count_only:
+        print("Logging in with Wikibase Integrator")
+        config.login_instance = wbi_login.Login(
+            user=config.username, pwd=config.password
+        )
+        # Set User-Agent
+        wbi_config.config["USER_AGENT_DEFAULT"] = f"LexSAOB (WikidataIntegrator/0.11.0) User:So9q"
     language = LexemeLanguage("sv")
     language.fetch_all_lexemes_without_saob_id()
     lexemes_list = language.lemma_list()
