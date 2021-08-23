@@ -347,7 +347,7 @@ class LexemeLanguage:
         print("Fetching all lexemes")
         lexemes_data = {}
         lexeme_lemma_list = []
-        for i in range(0, 30, 10000):
+        for i in range(0, 30000, 10000):
             print(i)
             results = execute_sparql_query(f"""
                     select ?lexemeId ?lemma ?category
@@ -359,8 +359,12 @@ class LexemeLanguage:
                   MINUS{{
                     ?lexemeId wdt:P8478 [].
                   }}
+                  MINUS {{
+                    # Exclude truthy no value statements
+                    ?lexemeId a wdno:P8478.                  
+                  }}
                 }}
-        limit 300
+        limit 10000
         offset {i}
             """)
             if len(results) == 0:
