@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from enum import Enum
 from typing import List
@@ -55,6 +56,20 @@ class WikidataNamespaceLetters(Enum):
     PROPERTY = "P"
     ITEM = "Q"
     LEXEME = "L"
+
+
+class WikidataTimeFormat:
+    """Takes a datetime as input and outputs the chosen precision"""
+    datetime: datetime
+
+    def __init__(self, datetime: datetime = None):
+        if datetime is None:
+            raise ValueError("Got no datetime")
+        else:
+            self.datetime = datetime
+
+    def day(self):
+        return datetime.strftime(self.datetime, "+%Y-%m-%dT00:00:00Z/11")
 
 
 class EntityID:
@@ -127,10 +142,16 @@ class Lexeme:
                              "SAOB only published lemma from a-u.")
             else:
                 print(f"Uploading no_value statement to {self.id}: {self.lemma}")
+                time_object = WikidataTimeFormat(datetime.today())
+                date_qualifier = wbi_datatype.Time(
+                    prop_nr="P585",
+                    value=time_object.day()
+                )
                 statement = wbi_datatype.ExternalID(
                     prop_nr=foreign_id.property,
                     value=None,
                     snak_type="novalue",
+                    qualifiers=date_qualifier
                 )
                 item = wbi_core.ItemEngine(
                     data=[statement],
@@ -154,7 +175,8 @@ class Lexeme:
             )
             described_by_source = wbi_datatype.ItemID(
                 prop_nr="P1343",  # stated in
-                value=foreign_id.source_item_id
+                value=foreign_id.source_item_id,
+                if_exists="APPEND"
             )
             item = wbi_core.ItemEngine(
                 data=[statement,
