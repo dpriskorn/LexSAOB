@@ -1,12 +1,9 @@
 import json
 import logging
 import re
-from enum import Enum
-from pprint import pprint
 from typing import List, Union
 
 import requests
-from bs4 import BeautifulSoup
 
 
 class SAOBSubentry:
@@ -73,11 +70,11 @@ class SAOBSubentry:
                 if label == self.lemma:
                     logger.debug("We found a matching subentry!")
                     # This parses strings like this "/artikel/?seek=helsko&pz=2#U_H593_49212"
-                    pattern = "\/artikel\/\?seek=([\w%]+)&pz=\d#([A-Z]\w+)"
+                    pattern = "\/artikel\/\?seek=([\w%0-9]+)&pz=\d#([A-Z]\w+)"
                     matches: Union[List[tuple], None] = re.findall(pattern, link)
                     logger.debug(f"matches:{matches} for {link}")
                     # Check if we got a section_id:
-                    if matches is not None:
+                    if matches is not None and len(matches) > 0:
                         self.seek_parameter = matches[0][0]
                         self.section_id = matches[0][1]
                         logger.info(self)
