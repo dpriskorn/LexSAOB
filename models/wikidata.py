@@ -69,7 +69,7 @@ class WikidataTimeFormat:
             self.datetime = datetime
 
     def day(self):
-        return datetime.strftime(self.datetime, "+%Y-%m-%dT00:00:00Z/11")
+        return datetime.strftime(self.datetime, "+%Y-%m-%dT00:00:00Z")
 
 
 class EntityID:
@@ -110,6 +110,7 @@ class ForeignID:
             self.source_item_id = EntityID(source_item_id).to_string()
         self.no_value = no_value
 
+
 class Lexeme:
     id: str
     lemma: str
@@ -135,8 +136,8 @@ class Lexeme:
         elif foreign_id.no_value:
             # We did not find the lemma in SAOB
             # See https://www.saob.se/artikel/?pz=1&seek=%C3%A4rva
-            # Skip unsupported lemmas
-            supported_by_saob = "abcdefghijklmnopqrstu"
+            # Skip unsupported lemmas incl. "-"
+            supported_by_saob = "abcdefghijklmnopqrstu-"
             if self.lemma[:1] not in supported_by_saob:
                 logger.debug("Skip adding no-value to this lemma because "
                              "SAOB only published lemma from a-u.")
@@ -144,14 +145,14 @@ class Lexeme:
                 print(f"Uploading no_value statement to {self.id}: {self.lemma}")
                 time_object = WikidataTimeFormat(datetime.today())
                 date_qualifier = wbi_datatype.Time(
-                    prop_nr="P585",
-                    value=time_object.day()
+                    time_object.day(),
+                    prop_nr="P585"
                 )
                 statement = wbi_datatype.ExternalID(
                     prop_nr=foreign_id.property,
                     value=None,
                     snak_type="novalue",
-                    qualifiers=date_qualifier
+                    qualifiers=[date_qualifier]
                 )
                 item = wbi_core.ItemEngine(
                     data=[statement],
@@ -192,6 +193,7 @@ class Lexeme:
             logger.debug(f"result from WBI:{result}")
             print(self.url())
             # exit(0)
+
 
 class Form:
     pass
