@@ -13,3 +13,5 @@ login_instance = None
 loglevel = None
 tool_url = "Wikidata:Tools/LexSAOB"
 wd_prefix = "http://www.wikidata.org/entity/"
+supported_by_saob = "abcdefghijklmnopqrstu-"
+ask_when_no_category_found = False

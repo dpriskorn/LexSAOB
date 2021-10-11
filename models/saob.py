@@ -27,7 +27,7 @@ class SAOBSubentry:
     def __str__(self):
         return (f"SAOBSubentry: "
                 f"lemma:{self.lemma} "
-                f"entry_lemma:{self.seek_parameter} "
+                f"seek_parameter:{self.seek_parameter} "
                 f"section_id:{self.section_id}")
 
     # def search_for_lemma(self):

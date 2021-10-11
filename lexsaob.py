@@ -9,6 +9,7 @@ from wikibaseintegrator import wbi_login
 from wikibaseintegrator import wbi_config
 
 import config
+from helpers.console import ask_yes_no_question, console
 from models import wikidata, saob
 
 # Constants
@@ -18,7 +19,7 @@ from models.wikidata import LexemeLanguage, ForeignID
 wd_prefix = "http://www.wikidata.org/entity/"
 count_only = False
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Pseudo code
@@ -45,6 +46,24 @@ def check_matching_category(lexeme: wikidata.Lexeme = None,
     if saob_entry.lexical_category == "" or saob_entry.lexical_category is None:
         if not count_only:
             logging.info("No category found")
+            if config.ask_when_no_category_found:
+                # TODO improve this by scraping from SAOB
+                if lexeme.lexical_category == "Q1084":
+                    answer = ask_yes_no_question(f"Is {saob_entry.lemma} a noun? ({saob_entry.url()})")
+                    if answer:
+                        category = "Q1084"
+                if lexeme.lexical_category == "Q24905":
+                    answer = ask_yes_no_question(f"Is {saob_entry.lemma} a verb? ({saob_entry.url()})")
+                    if answer:
+                        category = "Q24905"
+                if lexeme.lexical_category == "Q34698":
+                    answer = ask_yes_no_question(f"Is {saob_entry.lemma} an adjective? ({saob_entry.url()})")
+                    if answer:
+                        category = "Q34698"
+                if lexeme.lexical_category == "Q380057":
+                    answer = ask_yes_no_question(f"Is {saob_entry.lemma} an adverb? ({saob_entry.url()})")
+                    if answer:
+                        category = "Q380057"
     elif "verb" in saob_entry.lexical_category:
         category = "Q24905"
     elif "subst" in saob_entry.lexical_category:
@@ -168,7 +187,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
                   f"{lexemes_count} ({round(processed_count * 100 / lexemes_count)}%)")
         lexeme: wikidata.Lexeme = lexemes_data[lemma]
         if not count_only:
-            logging.info(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category}")
+            logging.info(f"Working on {lexeme.id}: {lexeme.lemma} {lexeme.lexical_category} {lexeme.url()}")
         value_count = 0
         matching_saob_indexes = []
         if lexeme.lemma in saob_lemma_list:
@@ -211,6 +230,10 @@ def process_lexemes(lexeme_lemma_list: List = None,
                                         logging.info("More that one noun found. Skipping")
                                         skipped_multiple_matches += 1
                                         continue
+                                    if subst_count == 0:
+                                        logging.info("Possibly more that one noun found. Skipping")
+                                        skipped_multiple_matches += 1
+                                        continue
                                 if entry.lexical_category == "verb":
                                     if verb_count > 1:
                                         logging.info("More that one verb found. Skipping")
@@ -231,7 +254,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
             elif value_count == 1:
                 # Only 1 search result in the saob wordlist so pick it
                 entry = saob_data[matching_saob_indexes[0]]
-                logger.debug(f"Only 1 matching lemma, see {entry.url()}")
+                logger.info(f"Only 1 matching lemma, see {entry.url()}")
                 result = check_matching_category(lexeme=lexeme,
                                                  saob_entry=entry)
                 if result:
@@ -253,13 +276,33 @@ def process_lexemes(lexeme_lemma_list: List = None,
                     ))
                 no_value_count += 1
                 if config.match_subentry:
-                    logger.info("Searching for the lemma on saob.se to find a subentry")
-                    subentry = SAOBSubentry(lexeme.lemma)
-                    found = subentry.search_using_api()
-                    if found:
-                        logger.info(f"Found subentry match for {lexeme.lemma}")
-                        # Add new property (to be proposed) SAOB section ID
-                        # TODO upload once new property is proposed and created
+                    if lexeme.lemma[:1] not in config.supported_by_saob:
+                        logger.debug("Skip searhing for this because "
+                                     "SAOB only published lemma from a-u.")
+                    else:
+                        logger.info("Searching for the lemma on saob.se to find a subentry")
+                        subentry = SAOBSubentry(lexeme.lemma)
+                        found = subentry.search_using_api()
+                        if found:
+                            logger.info(f"Found subentry match for {lexeme.lemma}")
+                            # Add new property (to be proposed) SAOB section ID
+                            print(subentry)
+                            lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
+                                id=f"{subentry.seek_parameter}#{subentry.section_id}",
+                                property="P9963",
+                                source_item_id="Q1935308"
+                            ))
+                            # logger.debug("debug exit")
+                            # exit(0)
+                        else:
+                            # Add SAOB section ID=no_value to lexeme
+                            logger.info(f"No subentry match for {lexeme.lemma}")
+                            lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
+                                property="P9963",
+                                no_value=True
+                            ))
+                            # logger.debug("debug exit here")
+                            # exit(0)
         processed_count += 1
     print(f"Processed {processed_count} lexemes. "
           f"Found {match_count} matches "

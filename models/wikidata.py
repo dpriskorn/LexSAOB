@@ -1,15 +1,15 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 from enum import Enum
 from typing import List
 
 from wikibaseintegrator import wbi_core, wbi_datatype
-
 # This config sets the URL for the Wikibase and tool.
 from wikibaseintegrator.wbi_functions import execute_sparql_query
 
 import config
-from modules import wdqs
+from helpers import wdqs
+from helpers.console import console
 
 
 class WikimediaLanguageCode(Enum):
@@ -137,36 +137,37 @@ class Lexeme:
             # We did not find the lemma in SAOB
             # See https://www.saob.se/artikel/?pz=1&seek=%C3%A4rva
             # Skip unsupported lemmas incl. "-"
-            supported_by_saob = "abcdefghijklmnopqrstu-"
-            if self.lemma[:1] not in supported_by_saob:
+            if self.lemma[:1] not in config.supported_by_saob:
                 logger.debug("Skip adding no-value to this lemma because "
                              "SAOB only published lemma from a-u.")
             else:
-                print(f"Uploading no_value statement to {self.id}: {self.lemma}")
-                time_object = WikidataTimeFormat(datetime.today())
-                date_qualifier = wbi_datatype.Time(
-                    time_object.day(),
-                    prop_nr="P585"
-                )
-                statement = wbi_datatype.ExternalID(
-                    prop_nr=foreign_id.property,
-                    value=None,
-                    snak_type="novalue",
-                    qualifiers=[date_qualifier]
-                )
-                item = wbi_core.ItemEngine(
-                    data=[statement],
-                    item_id=self.id
-                )
-                # debug WBI error
-                # print(item.get_json_representation())
-                result = item.write(
-                    config.login_instance,
-                    edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
-                )
-                logger.debug(f"result from WBI:{result}")
-                print(self.url())
-                #exit(0)
+                with console.status(f"Uploading {foreign_id.property}:no_value "
+                                    f"statement to {self.id}: {self.lemma}"):
+                    time_object = WikidataTimeFormat(datetime.today())
+                    date_qualifier = wbi_datatype.Time(
+                        time_object.day(),
+                        prop_nr="P585"
+                    )
+                    statement = wbi_datatype.ExternalID(
+                        prop_nr=foreign_id.property,
+                        value=None,
+                        snak_type="novalue",
+                        qualifiers=[date_qualifier]
+                    )
+                    item = wbi_core.ItemEngine(
+                        data=[statement],
+                        item_id=self.id
+                    )
+                    # debug WBI error
+                    # print(item.get_json_representation())
+                    result = item.write(
+                        config.login_instance,
+                        edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
+                    )
+                    logger.debug(f"result from WBI:{result}")
+                    console.print(f"Uploaded {foreign_id.property}:no_value "
+                                   f"statement to {self.lemma} {self.url()}")
+                    # exit(0)
         else:
             # We found the lemma in SAOB
             print(f"Uploading {foreign_id.id} to {self.id}: {self.lemma}")
@@ -249,7 +250,7 @@ class LexemeLanguage:
             f = Form.parse_from_wdqs_json(entry)
             self.forms_without_an_example.append(f)
         logger.info(f"Got {len(self.forms_without_an_example)} "
-                     f"forms from WDQS for language {self.language_code.name}")
+                    f"forms from WDQS for language {self.language_code.name}")
 
     def fetch_lexemes(self):
         # TODO port to use the Lexeme class instead of heavy dataframes which we don't need
