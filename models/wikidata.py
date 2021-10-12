@@ -133,66 +133,91 @@ class Lexeme:
         logger = logging.getLogger(__name__)
         if foreign_id is None:
             raise Exception("Foreign id was None")
-        elif foreign_id.no_value:
-            # We did not find the lemma in SAOB
-            # See https://www.saob.se/artikel/?pz=1&seek=%C3%A4rva
-            # Skip unsupported lemmas incl. "-"
-            if self.lemma[:1] not in config.supported_by_saob:
-                logger.debug("Skip adding no-value to this lemma because "
-                             "SAOB only published lemma from a-u.")
-            else:
-                with console.status(f"Uploading {foreign_id.property}:no_value "
-                                    f"statement to {self.id}: {self.lemma}"):
-                    time_object = WikidataTimeFormat(datetime.today())
-                    date_qualifier = wbi_datatype.Time(
-                        time_object.day(),
-                        prop_nr="P585"
-                    )
-                    statement = wbi_datatype.ExternalID(
-                        prop_nr=foreign_id.property,
-                        value=None,
-                        snak_type="novalue",
-                        qualifiers=[date_qualifier]
-                    )
-                    item = wbi_core.ItemEngine(
-                        data=[statement],
-                        item_id=self.id
-                    )
-                    # debug WBI error
-                    # print(item.get_json_representation())
-                    result = item.write(
-                        config.login_instance,
-                        edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
-                    )
-                    logger.debug(f"result from WBI:{result}")
-                    console.print(f"Uploaded {foreign_id.property}:no_value "
-                                   f"statement to {self.lemma} {self.url()}")
-                    # exit(0)
+        # elif foreign_id.no_value:
+        #     # We did not find the lemma in SAOB
+        #     # See https://www.saob.se/artikel/?pz=1&seek=%C3%A4rva
+        #     # Skip unsupported lemmas incl. "-"
+        #     if self.lemma[:1] not in config.supported_by_saob:
+        #         logger.debug("Skip adding no-value to this lemma because "
+        #                      "SAOB only published lemma from a-u.")
+        #     else:
+        #         with console.status(f"Uploading {foreign_id.property}:no_value "
+        #                             f"statement to {self.id}: {self.lemma}"):
+        #             time_object = WikidataTimeFormat(datetime.today())
+        #             date_qualifier = wbi_datatype.Time(
+        #                 time_object.day(),
+        #                 prop_nr="P585"
+        #             )
+        #             statement = wbi_datatype.ExternalID(
+        #                 prop_nr=foreign_id.property,
+        #                 value=None,
+        #                 snak_type="novalue",
+        #                 qualifiers=[date_qualifier]
+        #             )
+        #             item = wbi_core.ItemEngine(
+        #                 data=[statement],
+        #                 item_id=self.id
+        #             )
+        #             # debug WBI error
+        #             # print(item.get_json_representation())
+        #             result = item.write(
+        #                 config.login_instance,
+        #                 edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
+        #             )
+        #             logger.debug(f"result from WBI:{result}")
+        #             console.print(f"Uploaded {foreign_id.property}:no_value "
+        #                           f"statement to {self.lemma} {self.url()}")
+        #             exit(0)
         else:
             # We found the lemma in SAOB
-            print(f"Uploading {foreign_id.id} to {self.id}: {self.lemma}")
-            statement = wbi_datatype.ExternalID(
-                prop_nr=foreign_id.property,
-                value=foreign_id.id,
-            )
-            described_by_source = wbi_datatype.ItemID(
-                prop_nr="P1343",  # stated in
-                value=foreign_id.source_item_id,
-                if_exists="APPEND"
-            )
+            with console.status(f"Uploading {foreign_id.id} to {self.id}: {self.lemma}"):
+                statement = wbi_datatype.ExternalID(
+                    prop_nr=foreign_id.property,
+                    value=foreign_id.id,
+                )
+                described_by_source = wbi_datatype.ItemID(
+                    prop_nr="P1343",  # stated in
+                    value=foreign_id.source_item_id,
+                    if_exists="APPEND"
+                )
+                item = wbi_core.ItemEngine(
+                    data=[statement,
+                          described_by_source],
+                    item_id=self.id
+                )
+                # debug WBI error
+                # print(item.get_json_representation())
+                result = item.write(
+                    config.login_instance,
+                    edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
+                )
+                logger.debug(f"result from WBI:{result}")
+                console.print(f"Uploaded {foreign_id.id} to {self.id}: {self.lemma} {self.url()}")
+                # logger.debug("debug exit 3")
+                # exit(0)
+
+    def upload_statement_to_wikidata(self,
+                                     statement: wbi_datatype.BaseDataType = None):
+        """Upload to enrich the wonderfull Wikidata <3"""
+        logger = logging.getLogger(__name__)
+        if statement is None:
+            raise Exception("Statement was None")
+        # We found the lemma in SAOB
+        with console.status(f"Uploading {statement.prop_nr}:{statement.value} "
+                            f"statement to {self.lemma} {self.url()}"):
             item = wbi_core.ItemEngine(
-                data=[statement,
-                      described_by_source],
+                data=[statement],
                 item_id=self.id
             )
             # debug WBI error
             # print(item.get_json_representation())
             result = item.write(
                 config.login_instance,
-                edit_summary=f"Added foreign identifier with [[{config.tool_url}]]"
+                edit_summary=f"Added [[{statement.prop_nr}]] statement with [[{config.tool_url}]]"
             )
             logger.debug(f"result from WBI:{result}")
-            print(self.url())
+            console.print(f"Uploaded {statement.prop_nr}:{statement.value} "
+                          f"statement to {self.lemma} {self.url()}")
             # exit(0)
 
 
@@ -366,53 +391,54 @@ class LexemeLanguage:
 
     def fetch_all_lexemes_without_saob_id(self):
         """download all swedish lexemes via sparql (~23000 as of 2021-04-05)"""
+        logger = logging.getLogger(__name__)
         # dictionary with word as key and list in the value
         # list[0] = lid
         # list[1] = category Qid
-        print("Fetching all lexemes")
-        lexemes_data = {}
-        lexeme_lemma_list = []
-        for i in range(0, 30000, 10000):
-            print(i)
-            results = execute_sparql_query(f"""
-                    select ?lexemeId ?lemma ?category
-                WHERE {{
-                  #hint:Query hint:optimizer "None".
-                  ?lexemeId dct:language wd:Q9027;
-                            wikibase:lemma ?lemma;
-                            wikibase:lexicalCategory ?category.
-                  MINUS{{
-                    ?lexemeId wdt:P8478 [].
-                  }}
-                  MINUS {{
-                    # Exclude truthy no value statements
-                    ?lexemeId a wdno:P8478.                  
-                  }}
-                }}
-        limit 10000
-        offset {i}
-            """)
-            if len(results) == 0:
-                print("No lexeme found")
-            else:
-                # print("adding lexemes to list")
-                # pprint(results.keys())
-                # pprint(results["results"].keys())
-                # pprint(len(results["results"]["bindings"]))
-                for result in results["results"]["bindings"]:
-                    # print(result)
-                    # *************************
-                    # Handle result and upload
-                    # *************************
-                    lemma = result["lemma"]["value"]
-                    lid = result["lexemeId"]["value"].replace(config.wd_prefix, "")
-                    lexical_category = result["category"]["value"].replace(config.wd_prefix, "")
-                    self.lexemes.append(Lexeme(
-                        id=lid,
-                        lemma=lemma,
-                        lexical_category=lexical_category
-                    ))
-        print(f"{len(self.lexemes)} fetched")
+        with console.status("Fetching all lexemes"):
+            lexemes_data = {}
+            lexeme_lemma_list = []
+            for i in range(0, 30000, 10000):
+                logger.debug(i)
+                results = execute_sparql_query(f"""
+                        select ?lexemeId ?lemma ?category
+                    WHERE {{
+                      #hint:Query hint:optimizer "None".
+                      ?lexemeId dct:language wd:Q9027;
+                                wikibase:lemma ?lemma;
+                                wikibase:lexicalCategory ?category.
+                      MINUS{{
+                        ?lexemeId wdt:P8478 [].
+                      }}
+                      MINUS {{
+                        # Exclude truthy no value statements
+                        ?lexemeId a wdno:P8478.                  
+                      }}
+                    }}
+            limit 10000
+            offset {i}
+                """)
+                if len(results) == 0:
+                    logger.warning("No lexeme found")
+                else:
+                    # print("adding lexemes to list")
+                    # pprint(results.keys())
+                    # pprint(results["results"].keys())
+                    # pprint(len(results["results"]["bindings"]))
+                    for result in results["results"]["bindings"]:
+                        # print(result)
+                        # *************************
+                        # Handle result and upload
+                        # *************************
+                        lemma = result["lemma"]["value"]
+                        lid = result["lexemeId"]["value"].replace(config.wd_prefix, "")
+                        lexical_category = result["category"]["value"].replace(config.wd_prefix, "")
+                        self.lexemes.append(Lexeme(
+                            id=lid,
+                            lemma=lemma,
+                            lexical_category=lexical_category
+                        ))
+        console.print(f"{len(self.lexemes)} lexemes fetched")
 
     def lemma_list(self):
         lemmas = []
