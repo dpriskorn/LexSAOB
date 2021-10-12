@@ -49,6 +49,7 @@ class SAOBSubentry:
         logger = logging.getLogger(__name__)
         header = {
             "Accept": "application/json",
+            "User-Agent": "LexSAOB, see https://github.com/dpriskorn/LexSAOB"
         }
         response = requests.get(
             ("https://www.saob.se/wp-admin/admin-ajax.php?"
