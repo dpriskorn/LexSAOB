@@ -203,7 +203,7 @@ class Lexeme:
         if statement is None:
             raise Exception("Statement was None")
         # We found the lemma in SAOB
-        with console.status(f"Uploading {statement.prop_nr}:{statement.value} "
+        with console.status(f"Uploading [[P:{statement.prop_nr}]]:[[statement.value]] "
                             f"statement to {self.lemma} {self.url()}"):
             item = wbi_core.ItemEngine(
                 data=[statement],
@@ -213,7 +213,7 @@ class Lexeme:
             # print(item.get_json_representation())
             result = item.write(
                 config.login_instance,
-                edit_summary=f"Added [[{statement.prop_nr}]] statement with [[{config.tool_url}]]"
+                edit_summary=f"Added [[P:{statement.prop_nr}]] statement with [[{config.tool_url}]]"
             )
             logger.debug(f"result from WBI:{result}")
             console.print(f"Uploaded {statement.prop_nr}:{statement.value} "
