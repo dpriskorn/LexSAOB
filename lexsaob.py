@@ -243,7 +243,9 @@ def process_lexemes(lexeme_lemma_list: List = None,
                                 continue
                         # TODO scrape entry definitions from saob and let the user decide
                         # whether any match the senses of the lexeme if any
-                        answer = ask_yes_no_question(f"Do you want to upload?")
+                        answer = ask_yes_no_question(f"Do you want to upload {entry.lemma} "
+                                                     f"({entry.url}) to {lexeme.lemma} "
+                                                     f"({lexeme.url()})?")
                         if answer:
                             lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
                                 id=entry.id,
