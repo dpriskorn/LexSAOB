@@ -396,48 +396,47 @@ class LexemeLanguage:
         # list[0] = lid
         # list[1] = category Qid
         with console.status("Fetching all lexemes"):
-            lexemes_data = {}
-            lexeme_lemma_list = []
-            for i in range(0, 30000, 10000):
-                logger.debug(i)
-                results = execute_sparql_query(f"""
-                        select ?lexemeId ?lemma ?category
-                    WHERE {{
-                      #hint:Query hint:optimizer "None".
-                      ?lexemeId dct:language wd:Q9027;
-                                wikibase:lemma ?lemma;
-                                wikibase:lexicalCategory ?category.
-                      MINUS{{
-                        ?lexemeId wdt:P8478 [].
-                      }}
-                      MINUS {{
-                        # Exclude truthy no value statements
-                        ?lexemeId a wdno:P8478.                  
-                      }}
-                    }}
-            limit 10000
-            offset {i}
-                """)
-                if len(results) == 0:
-                    logger.warning("No lexeme found")
-                else:
-                    # print("adding lexemes to list")
-                    # pprint(results.keys())
-                    # pprint(results["results"].keys())
-                    # pprint(len(results["results"]["bindings"]))
-                    for result in results["results"]["bindings"]:
-                        # print(result)
-                        # *************************
-                        # Handle result and upload
-                        # *************************
-                        lemma = result["lemma"]["value"]
-                        lid = result["lexemeId"]["value"].replace(config.wd_prefix, "")
-                        lexical_category = result["category"]["value"].replace(config.wd_prefix, "")
-                        self.lexemes.append(Lexeme(
-                            id=lid,
-                            lemma=lemma,
-                            lexical_category=lexical_category
-                        ))
+            # exclude those who already have a main entry SAOB id
+            # exclude those who already have a SAOB section id
+            # exclude P9660 not found in SAOB
+            results = execute_sparql_query(f"""
+                    select ?lexemeId ?lemma ?category
+                WHERE {{
+                  #hint:Query hint:optimizer "None".
+                  ?lexemeId dct:language wd:Q9027;
+                            wikibase:lemma ?lemma;
+                            wikibase:lexicalCategory ?category.
+                  MINUS{{
+                    ?lexemeId wdt:P8478 [].
+                  }}
+                  MINUS{{
+                    ?lexemeId wdt:P9963 [].
+                  }}
+                  MINUS{{
+                    ?lexemeId wdt:P9660 wd:Q1935308.
+                  }}
+                }}
+            """)
+        if len(results) == 0:
+            logger.warning("No lexemes found")
+        else:
+            with console.status("Parsing the data into lexemes"):
+                # pprint(results.keys())
+                # pprint(results["results"].keys())
+                # pprint(len(results["results"]["bindings"]))
+                for result in results["results"]["bindings"]:
+                    # print(result)
+                    # *************************
+                    # Handle result and upload
+                    # *************************
+                    lemma = result["lemma"]["value"]
+                    lid = result["lexemeId"]["value"].replace(config.wd_prefix, "")
+                    lexical_category = result["category"]["value"].replace(config.wd_prefix, "")
+                    self.lexemes.append(Lexeme(
+                        id=lid,
+                        lemma=lemma,
+                        lexical_category=lexical_category
+                    ))
         console.print(f"{len(self.lexemes)} lexemes fetched")
 
     def lemma_list(self):
