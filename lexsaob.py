@@ -9,7 +9,7 @@ from wikibaseintegrator import wbi_config
 from wikibaseintegrator import wbi_login, wbi_datatype
 
 import config
-from helpers.console import ask_yes_no_question
+from helpers.console import ask_yes_no_question, console
 from helpers.wbi_helper import time_today_statement
 from models import wikidata, saob
 from models.saob import SAOBSubentry
@@ -19,6 +19,7 @@ wd_prefix = "http://www.wikidata.org/entity/"
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
 
 # Pseudo code
 # first it gets all swedish lexemes
@@ -58,7 +59,8 @@ def handle_no_category(lexeme: wikidata.Lexeme = None,
 
 
 def check_matching_category(lexeme: wikidata.Lexeme = None,
-                            saob_entry: saob.SAOBEntry = None) -> bool:
+                            saob_entry: saob.SAOBEntry = None,
+                            unrecognized_category_count: int = None) -> [bool, bool]:
     logger = logging.getLogger(__name__)
     if lexeme is None or saob_entry is None:
         raise ValueError("Did not get the arguments needed")
@@ -93,29 +95,29 @@ def check_matching_category(lexeme: wikidata.Lexeme = None,
     elif "pron" in saob_entry.lexical_category:
         category = "Q36224"
     elif (
-        saob_entry.lexical_category == "prefix" or
-        saob_entry.lexical_category == "suffix" or
-        saob_entry.lexical_category == "affix"
+            saob_entry.lexical_category == "prefix" or
+            saob_entry.lexical_category == "suffix" or
+            saob_entry.lexical_category == "affix"
     ):
         category = "Q62155"
     elif (
-        # this covers all special cases like this one: https://svenska.se/saob/?id=O_0283-0242.Qqdq&pz=5
-        "(" in saob_entry.lexical_category or
-        "ssgled" in saob_entry.lexical_category
+            # this covers all special cases like this one: https://svenska.se/saob/?id=O_0283-0242.Qqdq&pz=5
+            "(" in saob_entry.lexical_category or
+            "ssgled" in saob_entry.lexical_category
     ):
         # ignore silently
-        return False
+        return False, False
     else:
         logging.error(f"Did not recognize category "
-                      f"'{saob_entry.lexical_category}' on "
-                      f"{saob_entry.url()}, skipping")
-        return False
+                      f"'{saob_entry.lexical_category}' on {saob_entry.lemma} "
+                      f"({saob_entry.url()}), skipping (in total skipped: {unrecognized_category_count})")
+        return False, True
     if category is not None:
         if category == lexeme.lexical_category:
-            return True
+            return True, False
         else:
             logging.info("Categories did not match, skipping")
-            return False
+            return False, False
 
 
 def load_saob_into_memory():
@@ -123,10 +125,10 @@ def load_saob_into_memory():
     # load all saab ids into a list we can lookup in using the index.
     # the two lists above have the same index.
     # load all saob lines into a dictionary with count as key and list in the value
-    #list[0] = saob_category
-    #list[1] = number
-    #list[2] = id
-    #list[3] = word
+    # list[0] = saob_category
+    # list[1] = number
+    # list[2] = id
+    # list[3] = word
     print("Loading SAOB into memory")
     saob_lemma_list = []
     saob_data = {}
@@ -138,7 +140,7 @@ def load_saob_into_memory():
         # Iterate over each row in the csv using reader object
         for row in csv_reader:
             # row variable is a list that represents a row in csv
-            #row0 is null
+            # row0 is null
             word = row[1]
             saob_category = row[2]
             if row[3] == '':
@@ -155,7 +157,7 @@ def load_saob_into_memory():
                 number=saob_number,
                 lemma=word
             )
-            saob_data[count] = entry #[saob_category, saob_number, saob_id, word]
+            saob_data[count] = entry  # [saob_category, saob_number, saob_id, word]
             saob_lemma_list.append(word)
             count += 1
     logger.info(f"loaded {count} saob lines into dictionary with length {len(saob_data)}")
@@ -169,10 +171,10 @@ def process_lexemes(lexeme_lemma_list: List = None,
                     saob_lemma_list: List = None,
                     saob_data: Dict = None):
     if (
-        lexeme_lemma_list is None or
-        lexemes_data is None or
-        saob_lemma_list is None or
-        saob_data is None
+            lexeme_lemma_list is None or
+            lexemes_data is None or
+            saob_lemma_list is None or
+            saob_data is None
     ):
         logger.exception("Did not get what we need")
     lexemes_count = len(lexeme_lemma_list)
@@ -181,6 +183,7 @@ def process_lexemes(lexeme_lemma_list: List = None,
     processed_count = 0
     skipped_multiple_matches = 0
     no_value_count = 0
+    unrecognized_category_count = 0
     for lemma in lexeme_lemma_list:
         if processed_count > 0 and processed_count % 1000 == 0:
             print(f"Processed {processed_count} lexemes out of "
@@ -216,8 +219,13 @@ def process_lexemes(lexeme_lemma_list: List = None,
                     entry = saob_data[index]
                     logging.debug(f"index {index} lemma: {entry.lemma} {entry.lexical_category} "
                                   f"number {entry.number}, see {entry.url()}")
-                    result: bool = check_matching_category(lexeme=lexeme,
-                                                           saob_entry=entry)
+                    result, unrecognized_category = check_matching_category(
+                        lexeme=lexeme,
+                        saob_entry=entry,
+                        unrecognized_category_count=unrecognized_category_count
+                    )
+                    if unrecognized_category:
+                        unrecognized_category_count += 1
                     if result:
                         logging.info("Categories match")
                         match_count += 1
@@ -243,21 +251,26 @@ def process_lexemes(lexeme_lemma_list: List = None,
                                 continue
                         # TODO scrape entry definitions from saob and let the user decide
                         # whether any match the senses of the lexeme if any
-                        answer = ask_yes_no_question(f"Do you want to upload {entry.lemma} "
-                                                     f"({entry.url}) to {lexeme.lemma} "
-                                                     f"({lexeme.url()})?")
-                        if answer:
-                            lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
-                                id=entry.id,
-                                property="P8478",
-                                source_item_id="Q1935308"
-                            ))
+                        # answer = ask_yes_no_question(f"Do you want to upload {entry.lemma} "
+                        #                              f"({entry.url()}) to {lexeme.lemma} "
+                        #                              f"({lexeme.url()})?")
+                        console.print("Found unique match between lemma and lexical category")
+                        lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
+                            id=entry.id,
+                            property="P8478",
+                            source_item_id="Q1935308"
+                        ))
             elif value_count == 1:
                 # Only 1 search result in the saob wordlist so pick it
                 entry = saob_data[matching_saob_indexes[0]]
                 logger.info(f"Only 1 matching lemma, see {entry.url()}")
-                result = check_matching_category(lexeme=lexeme,
-                                                 saob_entry=entry)
+                result, unrecognized_category = check_matching_category(
+                    lexeme=lexeme,
+                    saob_entry=entry,
+                    unrecognized_category_count=unrecognized_category_count
+                )
+                if unrecognized_category:
+                    unrecognized_category_count += 1
                 if result:
                     match_count += 1
                     lexeme.upload_foreign_id_to_wikidata(foreign_id=ForeignID(
