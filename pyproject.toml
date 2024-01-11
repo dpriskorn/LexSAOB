@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "lexsaob"
+version = "0.1.0"
+description = "Script to sync Wikidata Danish lexemes with SAOB"
+authors = ["Your Name <you@example.com>"]
+license = "GPLv3+"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+wikibaseintegrator = "^0.12.5"
+beautifulsoup4 = "^4.12.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
