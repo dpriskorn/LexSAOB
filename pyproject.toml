@@ -1,15 +1,17 @@
 [tool.poetry]
 name = "lexsaob"
-version = "0.1.0"
-description = "Script to sync Wikidata Danish lexemes with SAOB"
-authors = ["Your Name <you@example.com>"]
+version = "1.0.0"
+description = "Script to sync swedish lexemes in Wikidata with SAOB"
+authors = ["Nizo Priskorn"]
 license = "GPLv3+"
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-wikibaseintegrator = "^0.12.5"
+wikibaseintegrator = "0.12.12"
 beautifulsoup4 = "^4.12.2"
+pydantic = "^2.5.3"
+lxml = "^5.1.0"
 
 
 [build-system]

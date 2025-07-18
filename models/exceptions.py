@@ -1,0 +1,2 @@
+class FetchError(BaseException):
+    pass

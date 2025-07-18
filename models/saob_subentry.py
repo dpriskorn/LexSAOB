@@ -1,15 +1,15 @@
 import json
 import logging
 import re
-from enum import Enum
-from pprint import pprint
-from typing import List, Union
+from typing import Union, List
 
 import requests
-from bs4 import BeautifulSoup
+from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
-class SAOBSubentry:
+class SAOBSubentry(BaseModel):
     """Lemmas are listed as subentries on entries they
     share a head word with:
     E.g. handuk is on the SAOBEntry "hand" under "-duk"
@@ -21,11 +21,6 @@ class SAOBSubentry:
     seek_parameter: str = None  # This is a url-escaped string
     section_id: str = None
     lemma: str
-
-    def __init__(self, lemma: str):
-        if lemma is None:
-            raise Exception("lemma was None")
-        self.lemma = lemma
 
     def __str__(self):
         return (f"SAOBSubentry: "
@@ -49,7 +44,6 @@ class SAOBSubentry:
     def search_using_api(self):
         """Search for the lemma using the suggestions API
         Return true if found and false otherwise"""
-        logger = logging.getLogger(__name__)
         header = {
             "Accept": "application/json",
         }
@@ -104,27 +98,3 @@ class SAOBSubentry:
             return f"https://www.saob.se/artikel/?seek={self.seek_parameter}#{self.section_id}"
         except:
             pass
-
-
-class SAOBEntry():
-    id: str = None
-    lemma: str = None
-    lexical_category: str = None
-    number: int = None
-
-    def __init__(self,
-                 id: str = None,
-                 lemma: str = None,
-                 lexical_category: str = None,
-                 number: int = None):
-        self.id = id
-        self.lemma = lemma
-        self.lexical_category = lexical_category
-        self.number = number
-
-    def scrape_details(self):
-        """Scrape details from SAOB"""
-        pass
-
-    def url(self):
-        return f"https://www.saob.se/artikel/?unik={self.id}"
