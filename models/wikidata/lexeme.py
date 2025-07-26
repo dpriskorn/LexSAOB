@@ -184,7 +184,7 @@ class SaobLexeme(BaseModel):
         lexeme.write(
             summary="Adding SAOB identifier with [[Wikidata:Tools/LexSAOB|LexSAOB]]"
         )
-        print("Upload done to {lexeme.get_entity_url()}")
+        print(f"Upload done to {lexeme.get_entity_url()}")
         # if config.press_enter_to_continue:
         #     input("press enter to continue")
 
