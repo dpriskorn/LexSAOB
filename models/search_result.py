@@ -1,6 +1,9 @@
+import logging
 from typing import Dict
 
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class SearchResult(BaseModel):
@@ -14,20 +17,24 @@ class SearchResult(BaseModel):
         adverbium="Q380057",
         sbst="Q1084",
         adjektiv="Q34698",
+        adj="Q34698",
         udråbsord="Q83034",
         verbum="Q24905",
+        v="Q24905",
         konjunktion="Q36484",
         suffiks="Q102047",
         præfiks="Q134830",
+        ssgled="Q134830",
         talord="Q63116",
     )
 
     @property
     def lexical_category_qid(self) -> str:
         """Match using self.lexical_categories"""
+        logger.debug(f"Trying to get lexical category qid from '{self.lexical_category}'")
         qid = self.lexical_categories.get(self.lexical_category)
         if qid is None:
-            raise ValueError(f"No QID found for lexical category '{self.lexical_category}'")
+            raise ValueError(f"No QID found for lexical category '{self.lexical_category}' se {self.url}")
         return qid
 
     @property

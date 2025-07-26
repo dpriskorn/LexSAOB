@@ -48,6 +48,7 @@ class SaobMatcher(BaseModel):
         #     for item in result["results"]["bindings"]
         # ]
         # todo remove debug
+        logging.warning("Debug hard-coded to 1 LID")
         self.lids = ["L579308"]
 
     @staticmethod
@@ -242,11 +243,12 @@ class SaobMatcher(BaseModel):
                 first_span = a_element.find('span')
                 logger.debug(first_span)
                 lexical_category_val = first_span.get_text(strip=True).split(".")[0] if first_span else None
+                logger.debug(f"lexical_category_val: '{lexical_category_val}'")
                 # Create an instance of SearchResult and add it to the list
                 search_result = SearchResult(href=href, text=text, id=id_val,
                                              lexical_category=lexical_category_val)
                 pprint(search_result.model_dump())
-                print(search_result.lexical_category_qid)
+                logger.info(f"lexical_category_qid: {search_result.lexical_category_qid}")
                 search_results.append(search_result)
         return search_results
 
