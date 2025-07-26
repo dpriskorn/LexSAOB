@@ -167,7 +167,7 @@ class SaobLexeme(BaseModel):
         if match:
             self.saob_uid = str(match.group(1))
             logger.info(f"Hittade subentry_id '{self.saob_subentry_id}', se {self.saob_url}")
-            input("press enter to continue")
+            # input("press enter to continue")
         else:
             logger.info("Hittade inget subentry_id.")
 
