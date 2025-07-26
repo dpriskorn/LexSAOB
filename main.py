@@ -16,6 +16,7 @@ wbconfig["USER_AGENT"] = f"LexSAOB User:So9q"
 
 
 saob = SaobMatcher()
-saob.download_lids()
-print(saob.lids)
-saob.lookup_labels()
+saob.fetch_lexemes_without_saob_id()
+#print(saob.lids)
+#exit(0)
+saob.run()

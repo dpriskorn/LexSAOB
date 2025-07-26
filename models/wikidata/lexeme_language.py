@@ -3,13 +3,13 @@ from typing import List
 from wikibaseintegrator.wbi_helpers import execute_sparql_query
 
 import config
-from models.wikidata.lexeme import Lexeme
+from models.wikidata.lexeme import SaobLexeme
 
 from models.wikidata.enums import WikimediaLanguageCode, WikimediaLanguageQID
 
 
 class LexemeLanguage:
-    lexemes: List[Lexeme] = []
+    lexemes: List[SaobLexeme] = []
     language_code: WikimediaLanguageCode
     language_qid: WikimediaLanguageQID
     senses_with_P5137_per_lexeme: float
@@ -211,7 +211,7 @@ class LexemeLanguage:
                     lemma = result["lemma"]["value"]
                     lid = result["lexemeId"]["value"].replace(config.wd_prefix, "")
                     lexical_category = result["category"]["value"].replace(config.wd_prefix, "")
-                    self.lexemes.append(Lexeme(
+                    self.lexemes.append(SaobLexeme(
                         id=lid,
                         lemma=lemma,
                         lexical_category=lexical_category

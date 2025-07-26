@@ -1,18 +1,14 @@
 from pydantic import BaseModel
 
+import config
 from models.wikidata.entity_id import EntityID
 
 
 class ForeignID(BaseModel):
-    id: str
-    no_value: bool
-    property: str  # This is the property with type ExternalId
-    source_item: str  # This is the Q-item for the source
-
-    @property
-    def source_item_id(self):
-        return EntityID(self.source_item).to_string()
+    id: str = ""
+    no_value: bool = False
+    property_: str  # This is the property with type ExternalId
 
     @property
     def property_id(self):
-        return EntityID(self.property).to_string()
+        return EntityID(self.property_).to_string()
