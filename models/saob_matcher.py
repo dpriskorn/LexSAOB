@@ -34,62 +34,59 @@ class SaobMatcher(BaseModel):
         # list[1] = category Qid
         if config.lexeme_fetch_limit > 0:
             print(f"Fetching {config.lexeme_fetch_limit} lexemes")
-            range_end = config.lexeme_fetch_limit
+            limit = config.lexeme_fetch_limit
         else:
             print("Fetching all lexemes")
-            range_end = 40000
+            limit = 30000
         lexemes_data = {}
         lexeme_lemma_list = []
-        for i in range(0, range_end, 10000):
-            print(f"Fetch number {i}")
-            results = execute_sparql_query(f"""
-                    select ?lexemeId ?lemma ?category
-                WHERE {{
-                  #hint:Query hint:optimizer "None".
-                  ?lexemeId dct:language wd:Q9027;
-                            wikibase:lemma ?lemma;
-                            wikibase:lexicalCategory ?category.
-                  MINUS{{
-                    ?lexemeId wdt:P8478 [].
-                  }}
-                  MINUS{{
-                    ?lexemeId wdt:P9963 [].
-                  }}
-                  MINUS {{
-                    # Exclude truthy no value statements
-                    ?lexemeId a wdno:P8478.                  
-                  }}
-                  MINUS {{
-                    # Exclude truthy no value statements
-                    ?lexemeId a wdno:P9963.                  
-                  }}
-                }}
-        limit 10000
-        offset {i}
+        results = execute_sparql_query(f"""
+                select ?lexemeId ?lemma ?category
+            WHERE {{
+              #hint:Query hint:optimizer "None".
+              ?lexemeId dct:language wd:Q9027;
+                        wikibase:lemma ?lemma;
+                        wikibase:lexicalCategory ?category.
+              MINUS{{
+                ?lexemeId wdt:P8478 [].
+              }}
+              MINUS{{
+                ?lexemeId wdt:P9963 [].
+              }}
+              MINUS {{
+                # Exclude truthy no value statements
+                ?lexemeId a wdno:P8478.                  
+              }}
+              MINUS {{
+                # Exclude truthy no value statements
+                ?lexemeId a wdno:P9963.                  
+              }}
+            }}
+            limit {limit}
             """)
-            if len(results) == 0:
-                print("No lexeme found")
-            else:
-                # print("adding lexemes to list")
-                # pprint(results.keys())
-                # pprint(results["results"].keys())
-                # pprint(len(results["results"]["bindings"]))
-                for result in results["results"]["bindings"]:
-                    # print(result)
-                    # *************************
-                    # Handle result and upload
-                    # *************************
-                    lemma = result["lemma"]["value"]
-                    lid = result["lexemeId"]["value"].replace(config.wd_prefix, "")
-                    lexical_category = result["category"]["value"].replace(config.wd_prefix, "")
-                    self.lexemes.append(SaobLexeme(
-                        id=lid,
-                        lemma=lemma,
-                        lexical_category=lexical_category,
-                        wbi=wbi,
-                        session=self.session
-                    ))
-        print(f"{len(self.lexemes)} fetched")
+        if len(results) == 0:
+            print("No lexemes found")
+        else:
+            # print("adding lexemes to list")
+            # pprint(results.keys())
+            # pprint(results["results"].keys())
+            # pprint(len(results["results"]["bindings"]))
+            for result in results["results"]["bindings"]:
+                # print(result)
+                # *************************
+                # Handle result and upload
+                # *************************
+                lemma = result["lemma"]["value"]
+                lid = result["lexemeId"]["value"].replace(config.wd_prefix, "")
+                lexical_category = result["category"]["value"].replace(config.wd_prefix, "")
+                self.lexemes.append(SaobLexeme(
+                    id=lid,
+                    lemma=lemma,
+                    lexical_category=lexical_category,
+                    wbi=wbi,
+                    session=self.session
+                ))
+        print(f"{len(self.lexemes)} lexemes fetched")
 
     def run(self):
         logger.debug("lookup_labels: running")
