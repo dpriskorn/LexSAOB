@@ -17,3 +17,4 @@ saob_main_entry_property: str = "P8478"  # SAOB main entry
 saob_subentry_property: str = "P9963"
 dictionary_item: str = "Q1935308"  # SAOB
 query_format_url: str = "https://www.saob.se/artikel/?seek="
+processed_lexeme_ids = "processed_lexeme_ids.csv"

@@ -26,6 +26,7 @@ class SaobLexeme(BaseModel):
     session: Session
     saob_uid: str = ""  # hash used as part of the subentry_id e.g. U_F3169_181719
     foreign_id: ForeignID = None
+    homographic_lexeme_count: int = 0
 
     class Config:
         arbitrary_types_allowed = True
@@ -136,19 +137,18 @@ class SaobLexeme(BaseModel):
     #     else:
     #         raise ValueError("Anchor element not found.")
 
-    @staticmethod
-    def number_of_lexemes_with_identical_lemma_and_lexcat(lemma, lexcat) -> int:
+    def find_homographs(self) -> int:
+        """number_of_lexemes_with_identical_lemma_and_lexcat"""
         query = f"""
             SELECT (COUNT(?lexeme) as ?count) WHERE {{
                 ?lexeme dct:language wd:Q9035;
-                        wikibase:lemma "{lemma}"@da;
-                        wikibase:lexicalCategory wd:{lexcat}.
+                        wikibase:lemma "{self.lemma}"@da;
+                        wikibase:lexicalCategory wd:{self.lexcat}.
             }}
         """
         data = execute_sparql_query(query)
-        count = int(data["results"]["bindings"][0]["count"]["value"])
-        logger.info(f"Found {count} lexemes with the same lemma and category in WD")
-        return count
+        self.homographic_lexeme_count = int(data["results"]["bindings"][0]["count"]["value"])
+        logger.info(f"Found {self.homographic_lexeme_count} lexemes with the same lemma and category in WD")
 
     # @staticmethod
     # def get_saob_lemma(response) -> str:
@@ -294,120 +294,152 @@ class SaobLexeme(BaseModel):
     def saob_subentry_id(self):
         return f"{self.lemma}#{self.saob_uid}"
 
+    def store_processed_lexeme_id(self, filepath: str = config.processed_lexeme_ids) -> None:
+        """Append matched lexeme ID and lemma to a file."""
+        try:
+            with open(filepath, "a", encoding="utf-8") as f:
+                f.write(f"{self.id}\t{self.lemma}\t{self.saob_subentry_id}\n")
+            logger.info(f"Stored matched lexeme: {self.id} ({self.lemma})")
+        except Exception as e:
+            logger.error(f"Failed to write lexeme ID to file: {e}")
+
+    def already_processed(self, filepath: str = config.processed_lexeme_ids) -> bool:
+        """Check if the given lexeme ID exists in the file."""
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith(self.id + "\t"):
+                        return True
+            return False
+        except FileNotFoundError:
+            logger.warning(f"File not found: {filepath}")
+            return False
+        except Exception as e:
+            logger.error(f"Error reading file {filepath}: {e}")
+            return False
+
     def match_and_improve(self):
-        print(f"Working on '{self.lemma}'")
-        search_url = f"{config.query_format_url}{quote(string=str(self.lemma))}"
-        response = self.session.get(search_url)
-        logger.debug("Fetching lexeme data from wikidata")
-        lexeme = self.wbi.lexeme.get(self.id)
-        print("Looking up in SAOB")
-        if response.status_code == 200:
-            logger.debug("got 200 from SAOB")
-            if self.is_search_result(response=response):
-                logger.info("Skipping unsupported search result page")
-                # count = self.search_result_count(response=response)
-                # print(count)
-                # raise NotImplementedError("parsing search results is not implemented yet")
-                # results = self.parse_search_results(response=response)
-                # exit()
-            else:
-                # got entry
-                self.get_saob_uid(response=response)
-                if self.saob_uid:
-                    self.prepare_upload_to_wikidata(lexeme=lexeme)
-                else:
-                    logger.info("finding saob_lemma is not implemented yet, skipping")
-                    # raise NotImplementedError("finding saob_lemma is not implemented yet")
-                    # saob_lemma = self.get_saob_lemma(response=response)
-                    # if self.lemma != saob_lemma:
-                    #     logger.warning(
-                    #         f"lemmas do not match, got lemma {saob_lemma} from saob. "
-                    #         f"These are often near matches, we skip them for now "
-                    #         f"because we have not decided how to handle these yet. Skipping."
-                    #     )
-                    #     return
-            # print(f"Ordnet.dk response for {lemma}:")
-            # logger.info(search_url)
-            # # todo adapt to SAOB
-            # if self.is_single_hit_in_saob(response=response):
-            #     qid = self.find_lexical_category_qid(response=response)
-            #     if qid and qid == lexeme.lexical_category:
-            #         count = (
-            #             self.number_of_lexemes_with_identical_lemma_and_lexcat(
-            #                 lemma=self.lemma, lexcat=qid
-            #             )
-            #         )
-            #         if count == 1:
-            #             # check match url if idiom
-            #             #match_url = self.get_match_url(response)
-            #             raise NotImplementedError("update to SAOB")
-            #             # logger.debug(match_url)
-            #             # if "mselect" not in match_url:
-            #             #     saob_article_id = self.get_saob_article_id(response)
-            #             #     print(saob_article_id)
-            #             #     saob_claim = ExternalID(
-            #             #         prop_nr="P9529", value=saob_article_id
-            #             #     )
-            #             #     lexeme.add_claims(claims=[saob_claim])
-            #             #     lexeme = self.remove_not_found_in_saob_if_present(
-            #             #         lexeme
-            #             #     )
-            #             #     self.enrich_wikidata(lexeme=lexeme)
-            #             #     # exit()
-            #             # else:
-            #             #     logger.info("Idiom detected")
-            #             #     mselect_start = match_url.find("mselect=")
-            #             #     if mselect_start != -1:
-            #             #         mselect_start += len("mselect=")
-            #             #         mselect_end = match_url.find("&", mselect_start)
-            #             #         if mselect_end == -1:
-            #             #             mselect_end = len(match_url)
-            #             #         saob_idiom_id = match_url[
-            #             #             mselect_start:mselect_end
-            #             #         ]
-            #             #         print(f"mselect value: {saob_idiom_id}")
-            #             #         saob_claim = ExternalID(
-            #             #             prop_nr="P9530", value=saob_idiom_id
-            #             #         )
-            #             #         lexeme.add_claims(claims=[saob_claim])
-            #             #         lexeme = (
-            #             #             self.remove_not_found_in_saob_if_present(
-            #             #                 lexeme
-            #             #             )
-            #             #         )
-            #             #         self.enrich_wikidata(lexeme=lexeme)
-            #             #     else:
-            #             #         raise ValueError(
-            #             #             "mselect value not found in the URL"
-            #             #         )
-            #         # sleep(1)
-            #         else:
-            #             print(
-            #                 "We don't support matching on lexemes where "
-            #                 "multiple exists with identical lemma and lexical category"
-            #             )
-            #     else:
-            #         print(
-            #             f"Lexical categories do not match, see {search_url} and {lexeme.get_entity_url()}, skipping"
-            #         )
-            #         input("press enter to continue")
-            # else:
-            #     logger.info(
-            #         f"Not a single hit in SAOB, see {search_url}. We don't support these yet, skipping."
-            #     )
+        if self.already_processed():
+            print("Skipping already processed lexeme")
+            return
+        self.find_homographs()
+        if self.homographic_lexeme_count > 1:
+            print(f"{self.homographic_lexeme_count} homographs exists, skipping")
         else:
-            if response.status_code == 404:
-                print("Got 404 from saob, adding not found in statement")
-                # saob is a moving target so we add point in time to this
-                time = Time(prop_nr="P585", time="now", precision=11)
-                not_found_in_saob = Item(
-                    prop_nr="P9660",
-                    value="Q1186741",
-                    qualifiers=Qualifiers().add(qualifier=time),
-                )
-                lexeme.add_claims(claims=[not_found_in_saob])
-                self.enrich_wikidata(lexeme=lexeme)
+            print(f"Working on '{self.lemma}'")
+            search_url = f"{config.query_format_url}{quote(string=str(self.lemma))}"
+            response = self.session.get(search_url)
+            logger.debug("Fetching lexeme data from wikidata")
+            lexeme = self.wbi.lexeme.get(self.id)
+            print("Looking up in SAOB")
+            if response.status_code == 200:
+                logger.debug("got 200 from SAOB")
+                if self.is_search_result(response=response):
+                    logger.info("Skipping unsupported search result page")
+                    # count = self.search_result_count(response=response)
+                    # print(count)
+                    # raise NotImplementedError("parsing search results is not implemented yet")
+                    # results = self.parse_search_results(response=response)
+                    # exit()
+                else:
+                    # got entry
+                    self.get_saob_uid(response=response)
+                    if self.saob_uid:
+                        self.prepare_upload_to_wikidata(lexeme=lexeme)
+                    else:
+                        logger.info("finding saob_lemma is not implemented yet, skipping")
+                        # raise NotImplementedError("finding saob_lemma is not implemented yet")
+                        # saob_lemma = self.get_saob_lemma(response=response)
+                        # if self.lemma != saob_lemma:
+                        #     logger.warning(
+                        #         f"lemmas do not match, got lemma {saob_lemma} from saob. "
+                        #         f"These are often near matches, we skip them for now "
+                        #         f"because we have not decided how to handle these yet. Skipping."
+                        #     )
+                        #     return
+                # print(f"Ordnet.dk response for {lemma}:")
+                # logger.info(search_url)
+                # # todo adapt to SAOB
+                # if self.is_single_hit_in_saob(response=response):
+                #     qid = self.find_lexical_category_qid(response=response)
+                #     if qid and qid == lexeme.lexical_category:
+                #         count = (
+                #             self.number_of_lexemes_with_identical_lemma_and_lexcat(
+                #                 lemma=self.lemma, lexcat=qid
+                #             )
+                #         )
+                #         if count == 1:
+                #             # check match url if idiom
+                #             #match_url = self.get_match_url(response)
+                #             raise NotImplementedError("update to SAOB")
+                #             # logger.debug(match_url)
+                #             # if "mselect" not in match_url:
+                #             #     saob_article_id = self.get_saob_article_id(response)
+                #             #     print(saob_article_id)
+                #             #     saob_claim = ExternalID(
+                #             #         prop_nr="P9529", value=saob_article_id
+                #             #     )
+                #             #     lexeme.add_claims(claims=[saob_claim])
+                #             #     lexeme = self.remove_not_found_in_saob_if_present(
+                #             #         lexeme
+                #             #     )
+                #             #     self.enrich_wikidata(lexeme=lexeme)
+                #             #     # exit()
+                #             # else:
+                #             #     logger.info("Idiom detected")
+                #             #     mselect_start = match_url.find("mselect=")
+                #             #     if mselect_start != -1:
+                #             #         mselect_start += len("mselect=")
+                #             #         mselect_end = match_url.find("&", mselect_start)
+                #             #         if mselect_end == -1:
+                #             #             mselect_end = len(match_url)
+                #             #         saob_idiom_id = match_url[
+                #             #             mselect_start:mselect_end
+                #             #         ]
+                #             #         print(f"mselect value: {saob_idiom_id}")
+                #             #         saob_claim = ExternalID(
+                #             #             prop_nr="P9530", value=saob_idiom_id
+                #             #         )
+                #             #         lexeme.add_claims(claims=[saob_claim])
+                #             #         lexeme = (
+                #             #             self.remove_not_found_in_saob_if_present(
+                #             #                 lexeme
+                #             #             )
+                #             #         )
+                #             #         self.enrich_wikidata(lexeme=lexeme)
+                #             #     else:
+                #             #         raise ValueError(
+                #             #             "mselect value not found in the URL"
+                #             #         )
+                #         # sleep(1)
+                #         else:
+                #             print(
+                #                 "We don't support matching on lexemes where "
+                #                 "multiple exists with identical lemma and lexical category"
+                #             )
+                #     else:
+                #         print(
+                #             f"Lexical categories do not match, see {search_url} and {lexeme.get_entity_url()}, skipping"
+                #         )
+                #         input("press enter to continue")
+                # else:
+                #     logger.info(
+                #         f"Not a single hit in SAOB, see {search_url}. We don't support these yet, skipping."
+                #     )
             else:
-                raise FetchError(
-                    f"Error getting data for {self.lemma}, see {search_url}"
-                )
+                if response.status_code == 404:
+                    print("Got 404 from saob, adding not found in statement")
+                    # saob is a moving target so we add point in time to this
+                    time = Time(prop_nr="P585", time="now", precision=11)
+                    not_found_in_saob = Item(
+                        prop_nr="P9660",
+                        value="Q1186741",
+                        qualifiers=Qualifiers().add(qualifier=time),
+                    )
+                    lexeme.add_claims(claims=[not_found_in_saob])
+                    self.enrich_wikidata(lexeme=lexeme)
+                else:
+                    raise FetchError(
+                        f"Error getting data for {self.lemma}, see {search_url}"
+                    )
+            self.store_processed_lexeme_id()
