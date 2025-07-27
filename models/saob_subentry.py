@@ -85,16 +85,10 @@ class SAOBSubentry(BaseModel):
             raise Exception(f"Got {response.status_code} from SAOB.se")
 
     def search_url(self):
-        try:
-            return f"https://www.saob.se/artikel/?seek={self.lemma}"
-        except:
-            pass
-            #raise AttributeError("no lemma")
+        return f"https://www.saob.se/artikel/?seek={self.lemma}"
+
 
     def url(self):
         """Use the seek parameter and section id to
         link directly to the subentry in saob.se"""
-        try:
-            return f"https://www.saob.se/artikel/?seek={self.seek_parameter}#{self.section_id}"
-        except:
-            pass
+        return f"https://www.saob.se/artikel/?seek={self.seek_parameter}#{self.section_id}"

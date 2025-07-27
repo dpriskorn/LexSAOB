@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-import config
 from models.wikidata.entity_id import EntityID
 
 

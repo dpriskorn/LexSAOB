@@ -1,17 +1,13 @@
 import logging
-from pprint import pprint
 from typing import List
 
-from bs4 import SoupStrainer, BeautifulSoup
 from pydantic import BaseModel
 from requests import Session
 from wikibaseintegrator import WikibaseIntegrator
-from wikibaseintegrator.entities import LexemeEntity
 from wikibaseintegrator.wbi_helpers import execute_sparql_query
 from wikibaseintegrator.wbi_login import Login
 
 import config
-from models.search_result import SearchResult
 from models.wikidata.lexeme import SaobLexeme
 
 logger = logging.getLogger(__name__)
@@ -38,8 +34,8 @@ class SaobMatcher(BaseModel):
         else:
             print("Fetching all lexemes")
             limit = 30000
-        lexemes_data = {}
-        lexeme_lemma_list = []
+        # lexemes_data = {}
+        # lexeme_lemma_list = []
         results = execute_sparql_query(f"""
                 select ?lexemeId ?lemma ?category
             WHERE {{

@@ -137,13 +137,13 @@ class SaobLexeme(BaseModel):
     #     else:
     #         raise ValueError("Anchor element not found.")
 
-    def find_homographs(self) -> int:
+    def find_homographs(self) -> None:
         """number_of_lexemes_with_identical_lemma_and_lexcat"""
         query = f"""
             SELECT (COUNT(?lexeme) as ?count) WHERE {{
                 ?lexeme dct:language wd:Q9035;
                         wikibase:lemma "{self.lemma}"@da;
-                        wikibase:lexicalCategory wd:{self.lexcat}.
+                        wikibase:lexicalCategory wd:{self.lexical_category}.
             }}
         """
         data = execute_sparql_query(query)

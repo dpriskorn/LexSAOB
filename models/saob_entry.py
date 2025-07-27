@@ -1,12 +1,3 @@
-import json
-import logging
-import re
-from enum import Enum
-from pprint import pprint
-from typing import List, Union
-
-import requests
-from bs4 import BeautifulSoup
 from pydantic import BaseModel
 
 

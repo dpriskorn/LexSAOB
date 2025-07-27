@@ -1,5 +1,6 @@
 from typing import List
 
+from requests import Session
 from wikibaseintegrator.wbi_helpers import execute_sparql_query
 
 import config
@@ -18,6 +19,7 @@ class LexemeLanguage:
     # forms_with_an_example: int
     # forms_without_an_example: List[Form]
     lexemes_count: int
+    session: Session = Session()
 
     def __init__(self, language_code: str):
         self.language_code = WikimediaLanguageCode(language_code)
@@ -214,7 +216,9 @@ class LexemeLanguage:
                     self.lexemes.append(SaobLexeme(
                         id=lid,
                         lemma=lemma,
-                        lexical_category=lexical_category
+                        lexical_category=lexical_category,
+                        session=self.session,
+                        wbi=self.wbi
                     ))
         print(f"{len(self.lexemes)} fetched")
 

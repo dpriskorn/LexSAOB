@@ -41,9 +41,4 @@ class WikidataNamespaceLetters(Enum):
     LEXEME = "L"
 
 
-class WikidataNamespaceLetters(Enum):
-    PROPERTY = "P"
-    ITEM = "Q"
-    LEXEME = "L"
-
 
