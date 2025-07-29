@@ -1,4 +1,5 @@
 import logging
+import random
 from typing import List
 
 from pydantic import BaseModel
@@ -36,6 +37,7 @@ class SaobMatcher(BaseModel):
             limit = 30000
         # lexemes_data = {}
         # lexeme_lemma_list = []
+        offset = random.randint(a=0, b=10000)
         results = execute_sparql_query(f"""
                 select ?lexemeId ?lemma ?category
             WHERE {{
@@ -59,6 +61,7 @@ class SaobMatcher(BaseModel):
               }}
             }}
             limit {limit}
+            offset {offset}
             """)
         if len(results) == 0:
             print("No lexemes found")
