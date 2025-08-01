@@ -6,5 +6,5 @@ class InformationMissing(BaseException):
     pass
 
 
-class SubentryIdError(BaseException):
-    pass
+# class SubentryIdError(BaseException):
+#     pass
