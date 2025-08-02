@@ -156,6 +156,10 @@ class SaobLexeme(BaseModel):
     #     return response.url
 
     @property
+    def is_proper_noun(self):
+        return bool(self.lexical_category == "Q147276")
+
+    @property
     def saob_url(self):
         return f"{config.query_format_url}{quote(self.lemma)}#{self.saob_uid}"
 
@@ -324,7 +328,9 @@ class SaobLexeme(BaseModel):
             return
         self.find_homographs()
         if self.homographic_lexeme_count > 1:
-            print(f"{self.homographic_lexeme_count} homographs exists, skipping")
+            print(f"{self.homographic_lexeme_count} homographs exists for, skipping")
+        elif self.is_proper_noun and len(self.lemma) <= 12:
+            print(f"{self.id} is a proper noun and the lemma is not longer than 12 chars, skipping to avoid bad matches")
         else:
             print(f"Working on '{self.lemma}'")
             search_url = f"{config.query_format_url}{quote(string=str(self.lemma))}"
@@ -429,6 +435,8 @@ class SaobLexeme(BaseModel):
             else:
                 if response.status_code == 404:
                     print("Got 404 from saob, adding not found in statement")
+                    print("debug exit")
+                    exit(0)
                     # saob is a moving target so we add point in time to this
                     time = Time(prop_nr="P585", time="now", precision=11)
                     not_found_in_saob = Item(
