@@ -188,22 +188,22 @@ class SaobLexeme(BaseModel):
         # if config.press_enter_to_continue:
         #     input("press enter to continue")
 
-    def remove_not_found_in_saob_if_present(self, lexeme):
-        logger.debug("remove_not_found_in_saob_if_present: running")
-
-        try:
-            not_found_in = lexeme.claims.get(property=self.property_to_work_on)
-            for claim in not_found_in:
-                logger.debug(claim.mainsnak.datavalue)
-                # exit()
-                if claim.mainsnak.datavalue["value"]["id"] == self.dictionary_item:
-                    claim.remove()
-                    print("Removed not found in -> SAOB statement")
-                    input("press enter to continue")
-            # This should cause the claim to be removed
-        except KeyError:
-            pass
-        return lexeme
+    # def remove_not_found_in_saob_if_present(self, lexeme):
+    #     logger.debug("remove_not_found_in_saob_if_present: running")
+    #
+    #     try:
+    #         not_found_in = lexeme.claims.get(property=self.property_to_work_on)
+    #         for claim in not_found_in:
+    #             logger.debug(claim.mainsnak.datavalue)
+    #             # exit()
+    #             if claim.mainsnak.datavalue["value"]["id"] == self.dictionary_item:
+    #                 claim.remove()
+    #                 print("Removed not found in -> SAOB statement")
+    #                 input("press enter to continue")
+    #         # This should cause the claim to be removed
+    #     except KeyError:
+    #         pass
+    #     return lexeme
 
     # @staticmethod
     # def search_result_count(response) -> int:
