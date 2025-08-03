@@ -351,6 +351,9 @@ class SaobLexeme(BaseModel):
                     # got entry
                     self.get_saob_uid(response=response)
                     if self.saob_uid:
+                        if self.is_proper_noun:
+                            print(f"{self.id} {self.lemma} is proper noun, see {self.saob_url}")
+                            input("press enter to continue")
                         self.prepare_upload_to_wikidata(lexeme=lexeme)
                     else:
                         logger.info("finding saob_lemma is not implemented yet, skipping")
