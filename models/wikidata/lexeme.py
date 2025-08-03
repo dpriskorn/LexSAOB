@@ -329,8 +329,10 @@ class SaobLexeme(BaseModel):
         self.find_homographs()
         if self.homographic_lexeme_count > 1:
             print(f"{self.homographic_lexeme_count} homographs exists for, skipping")
+            self.store_processed_lexeme_id()
         elif self.is_proper_noun and len(self.lemma) <= 12:
-            print(f"{self.id} is a proper noun and the lemma is not longer than 12 chars, skipping to avoid bad matches")
+            print(f"{self.id} {self.lemma} is a proper noun and the lemma is not longer than 12 chars, skipping to avoid bad matches")
+            self.store_processed_lexeme_id()
         else:
             print(f"Working on '{self.lemma}'")
             search_url = f"{config.query_format_url}{quote(string=str(self.lemma))}"
