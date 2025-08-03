@@ -443,14 +443,14 @@ class SaobLexeme(BaseModel):
                     print("debug exit")
                     exit(0)
                     # saob is a moving target so we add point in time to this
-                    time = Time(prop_nr="P585", time="now", precision=11)
-                    not_found_in_saob = Item(
-                        prop_nr="P9660",
-                        value="Q1186741",
-                        qualifiers=Qualifiers().add(qualifier=time),
-                    )
-                    lexeme.add_claims(claims=[not_found_in_saob])
-                    self.enrich_wikidata(lexeme=lexeme)
+                    # time = Time(prop_nr="P585", time="now", precision=11)
+                    # not_found_in_saob = Item(
+                    #     prop_nr="P9660",
+                    #     value="Q1186741",
+                    #     qualifiers=Qualifiers().add(qualifier=time),
+                    # )
+                    # lexeme.add_claims(claims=[not_found_in_saob])
+                    # self.enrich_wikidata(lexeme=lexeme)
                 else:
                     raise FetchError(
                         f"Error getting data for {self.lemma}, see {search_url}"
