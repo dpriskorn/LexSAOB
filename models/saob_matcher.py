@@ -37,7 +37,8 @@ class SaobMatcher(BaseModel):
             limit = 30000
         # lexemes_data = {}
         # lexeme_lemma_list = []
-        offset = random.randint(a=0, b=10000)
+        offset = random.randint(a=0, b=20000)
+        print(f"Using offset {offset}")
         results = execute_sparql_query(f"""
                 select ?lexemeId ?lemma ?category
             WHERE {{
